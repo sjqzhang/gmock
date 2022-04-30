@@ -34,22 +34,13 @@ func testMockDB() {
 	mockdb := gmock.NewMockDB("mock.sql")
 	mockdb.RegisterModels(&User{})
 	mockdb.Reset()
-	user := User{
-		Id:   1,
-		Name: "hello",
-		Age:  100,
-	}
-	var user2 User
 	db := mockdb.GetGormDB()
-	//db.AutoMigrate(&User{})
-	err := db.Create(&user).Error
+	var user User
+	err := db.Where("id=?", 1).Find(&user).Error
 	if err != nil {
 		panic(err)
 	}
-	db.Where("id=?", 1).Find(&user2)
-	if user.Name != user2.Name {
-		panic("mock db panic")
-	}
+	fmt.Println(user)
 
 }
 
