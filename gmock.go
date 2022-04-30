@@ -14,6 +14,10 @@ func NewMockDB(pathToSqlFileName string) *mockdb.MockDB {
 	return mockdb.NewMockDB(pathToSqlFileName)
 }
 
+func NewMockDBV2(pathToSqlFileName string) *mockdb.MockDBV2 {
+	return mockdb.NewMockDBV2(pathToSqlFileName)
+}
+
 func NewMockRedisServer() *mockredis.MockRedisServer {
 	return mockredis.NewMockRedisServer()
 }

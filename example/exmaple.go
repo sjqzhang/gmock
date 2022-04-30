@@ -25,13 +25,28 @@ func StrToPrt(s string) *string {
 }
 
 func main() {
+
 	testMockDB()
+	testMockDBV2()
 	testMockRedis()
 	testMockHttpServer()
 }
 
 func testMockDB() {
-	mockdb := gmock.NewMockDB("mock.sql")
+	mockdb := gmock.NewMockDB("example/mock.sql")
+	mockdb.RegisterModels(&User{})
+	mockdb.ResetAndInit()
+	db := mockdb.GetGormDB()
+	var user User
+	err := db.Where("id=?", 1).Find(&user).Error
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(user)
+
+}
+func testMockDBV2() {
+	mockdb := gmock.NewMockDBV2("example/mock.sql")
 	mockdb.RegisterModels(&User{})
 	mockdb.ResetAndInit()
 	db := mockdb.GetGormDB()
