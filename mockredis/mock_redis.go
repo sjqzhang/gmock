@@ -1,4 +1,4 @@
-package redis
+package mockredis
 
 import (
 	"github.com/alicebob/miniredis/v2"

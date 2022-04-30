@@ -1,4 +1,4 @@
-package db
+package mockdb
 
 import (
 	"database/sql"

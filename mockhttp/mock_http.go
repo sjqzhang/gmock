@@ -1,9 +1,10 @@
-package http
+package mockhttp
 
 import (
 	"fmt"
 	"github.com/gorilla/mux"
 	fts "github.com/sjqzhang/killgrave/fakehttpserver/server/http"
+
 	"io"
 	"log"
 	"net/http"

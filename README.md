@@ -14,9 +14,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/sjqzhang/gmock"
+	"github.com/sjqzhang/gmock/mockhttp"
 	"io/ioutil"
 	"net/http"
-	"time"
 )
 
 type User struct {
@@ -75,7 +75,15 @@ func testMockRedis() {
 	ctx := context.Background()
 	key := "aa"
 	value := "aa value"
-	client.Set(ctx, key, value, time.Second*10)
+	pool := server.GetRedigoPool()
+	conn := pool.Get()
+	defer conn.Close()
+	rep, err := conn.Do("set", key, value)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(rep)
+	//client.Set(ctx, key, value, time.Second*10)
 	cmd := client.Get(ctx, key)
 	if cmd.Val() != value {
 		panic("redis")
@@ -86,7 +94,13 @@ func testMockRedis() {
 func testMockHttpServer() {
 	server := gmock.NewMockHttpServer("./", []string{"www.baidu.com"})
 	server.InitMockHttpServer()
-	resp, err := http.Get("http://www.baidu.com/testRequest")
+	server.SetReqRspHandler(func(req *mockhttp.Request, rsp *mockhttp.Response) {
+		req.Method = "GET"
+		req.Endpoint = "/HelloWorld"
+		req.Host = "www.baidu.com"
+		rsp.Body = "xxxxxxxxx bbbb"
+	})
+	resp, err := http.Get("http://www.baidu.com/HelloWorld")
 	if err != nil {
 		panic(err)
 	}
@@ -95,7 +109,7 @@ func testMockHttpServer() {
 		panic(err)
 	}
 	fmt.Println(string(data))
-
 }
+
 
 ```

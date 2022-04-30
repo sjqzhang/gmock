@@ -1,9 +1,9 @@
 package gmock
 
 import (
-	mockdb "github.com/sjqzhang/gmock/db"
-	mockhttp "github.com/sjqzhang/gmock/http"
-	mockredis "github.com/sjqzhang/gmock/redis"
+	"github.com/sjqzhang/gmock/mockdb"
+	"github.com/sjqzhang/gmock/mockhttp"
+	"github.com/sjqzhang/gmock/mockredis"
 )
 
 func NewMockHttpServer(mockJSONDir string, allowProxyHosts []string) *mockhttp.MockHttpServer {
