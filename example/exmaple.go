@@ -6,7 +6,6 @@ import (
 	"github.com/sjqzhang/gmock"
 	"io/ioutil"
 	"net/http"
-	"time"
 )
 
 type User struct {
@@ -65,7 +64,15 @@ func testMockRedis() {
 	ctx := context.Background()
 	key := "aa"
 	value := "aa value"
-	client.Set(ctx, key, value, time.Second*10)
+	pool:=server.GetRedigoPool()
+	conn:=pool.Get()
+	defer conn.Close()
+	rep,err:=conn.Do("set",key,value)
+	if err!=nil {
+		panic(err)
+	}
+    fmt.Println(rep)
+	//client.Set(ctx, key, value, time.Second*10)
 	cmd := client.Get(ctx, key)
 	if cmd.Val() != value {
 		panic("redis")
