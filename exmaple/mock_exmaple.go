@@ -3,12 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/sjqzhang/gmock/db"
-	mockhttp "github.com/sjqzhang/gmock/http"
-	"github.com/sjqzhang/gmock/redis"
+	"github.com/sjqzhang/gmock"
 	"io/ioutil"
 	"net/http"
-
 	"time"
 )
 
@@ -34,7 +31,7 @@ func main() {
 }
 
 func testMockDB() {
-	mockdb := db.NewMockDB("mock.sql")
+	mockdb := gmock.NewMockDB("mock.sql")
 	mockdb.RegisterModels(&User{})
 	mockdb.Reset()
 	user := User{
@@ -57,7 +54,7 @@ func testMockDB() {
 }
 
 func testMockRedis() {
-	server := redis.NewMockRedisServer()
+	server := gmock.NewMockRedisServer()
 	client := server.GetRedisClient()
 	ctx := context.Background()
 	key := "aa"
@@ -71,7 +68,7 @@ func testMockRedis() {
 }
 
 func testMockHttpServer() {
-	server := mockhttp.NewMockHttpServer("./", []string{"www.baidu.com"})
+	server := gmock.NewMockHttpServer("./", []string{"www.baidu.com"})
 	server.InitMockHttpServer()
 	resp, err := http.Get("http://www.baidu.com/testRequest")
 	if err != nil {
