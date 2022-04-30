@@ -25,6 +25,10 @@ func NewMockRedisServer() *MockRedisServer {
 	return &svc
 }
 
+func (m *MockRedisServer) FastForward(duration time.Duration) {
+	m.redisServer.FastForward(duration)
+}
+
 func (m *MockRedisServer) GetRedisClient() *redis.Client {
 	var opt redis.Options
 	opt.Addr = m.redisServer.Addr()
