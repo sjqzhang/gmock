@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/sjqzhang/gmock"
+	mockhttp "github.com/sjqzhang/gmock/http"
 	"io/ioutil"
 	"net/http"
 )
@@ -83,7 +84,13 @@ func testMockRedis() {
 func testMockHttpServer() {
 	server := gmock.NewMockHttpServer("./", []string{"www.baidu.com"})
 	server.InitMockHttpServer()
-	resp, err := http.Get("http://www.baidu.com/testRequest")
+	server.SetReqRspHandler(func(req *mockhttp.Request, rsp *mockhttp.Response)  {
+		req.Method="GET"
+		req.Endpoint="/HelloWorld"
+		req.Host="www.baidu.com"
+		rsp.Body="xxxxxxxxx bbbb"
+	})
+	resp, err := http.Get("http://www.baidu.com/HelloWorld")
 	if err != nil {
 		panic(err)
 	}
@@ -92,5 +99,4 @@ func testMockHttpServer() {
 		panic(err)
 	}
 	fmt.Println(string(data))
-
 }
