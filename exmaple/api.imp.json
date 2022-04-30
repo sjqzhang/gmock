@@ -1,0 +1,24 @@
+[
+  {
+    "request": {
+      "host": "ccc",
+      "method": "POST",
+      "endpoint": "/testRequest"
+    },
+    "response": {
+      "status": 200,
+      "body": "Handled hello world aaaaaaaaaa"
+    }
+  },
+  {
+    "request": {
+      "host": "www.baidu.com",
+      "method": "GET",
+      "endpoint": "/testRequest"
+    },
+    "response": {
+      "status": 200,
+      "body": "Handled hello world bbbbbbb"
+    }
+  }
+]
