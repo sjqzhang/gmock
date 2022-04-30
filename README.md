@@ -41,7 +41,7 @@ func main() {
 func testMockDB() {
 	mockdb := gmock.NewMockDB("mock.sql")
 	mockdb.RegisterModels(&User{})
-	mockdb.Reset()
+	mockdb.ResetAndInit()
 	db := mockdb.GetGormDB()
 	var user User
 	err := db.Where("id=?", 1).Find(&user).Error

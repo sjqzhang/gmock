@@ -38,8 +38,8 @@ func renew() *gorm.DB {
 	return db
 }
 
-// Reset reset db instance
-func (m *MockDB) Reset() {
+// ResetAndInit reset db instance
+func (m *MockDB) ResetAndInit() {
 	m.db = renew()
 	m.initModels()
 	m.initSQL()
@@ -69,7 +69,7 @@ func (m *MockDB) RegisterModels(models ...interface{}) {
 // InitModels init table schema in db instance
 func (m *MockDB) initModels() {
 	if m.db == nil {
-		panic("warning: call Reset func first!!!!!")
+		panic("warning: call ResetAndInit func first!!!!!")
 	}
 	for _, model := range m.models {
 		err := m.db.AutoMigrate(model).Error
