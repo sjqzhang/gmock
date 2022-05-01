@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 	"reflect"
 	"regexp"
 	"strings"
@@ -36,6 +37,23 @@ func renew() *gorm.DB {
 		panic(err)
 	}
 	return db
+}
+
+func getFilesBySuffix(dir string, suffix string) []string {
+	var files []string
+	filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return fmt.Errorf("%w: error finding imposters", err)
+		}
+		filename := info.Name()
+		if !info.IsDir() {
+			if strings.HasSuffix(filename, suffix) {
+				files = append(files, path)
+			}
+		}
+		return nil
+	})
+	return files
 }
 
 // ResetAndInit reset db instance
@@ -79,25 +97,28 @@ func (m *MockDB) initModels() {
 	}
 }
 func (m *MockDB) initSQL() {
-	sqlText := m.readMockSQl()
-	sqls := m.parseMockSQL(sqlText)
-	for _, sql := range sqls {
-		err := m.db.Exec(sql).Error
-		if err != nil {
-			panic(err)
+	for _, filePath := range getFilesBySuffix(m.pathToSqlFileName, "sql") {
+		sqlText := m.readMockSQl(filePath)
+		sqls := m.parseMockSQL(sqlText)
+		for _, sql := range sqls {
+			err := m.db.Exec(sql).Error
+			if err != nil {
+				log.Print(filePath)
+				panic(err)
+			}
 		}
+		log.Printf("sql file %v is loaded", filePath)
 	}
 }
 
 // ReadMockSQl read sql file to string
-func (m *MockDB) readMockSQl() string {
+func (m *MockDB) readMockSQl(filePath string) string {
 	_ = sqlite3.SQLITE_COPY
-	_, err := os.Stat(m.pathToSqlFileName)
-	if err != nil {
-		log.Printf("(warning)sql file %s not found", m.pathToSqlFileName)
+	if _, err := os.Stat(filePath); err != nil {
+		log.Print(err)
 		return ""
 	}
-	fp, err := os.Open(m.pathToSqlFileName)
+	fp, err := os.Open(filePath)
 	if err != nil {
 		panic(err)
 	}

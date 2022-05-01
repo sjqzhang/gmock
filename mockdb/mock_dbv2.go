@@ -84,24 +84,27 @@ func (m *MockDBV2) initModels() {
 	}
 }
 func (m *MockDBV2) initSQL() {
-	sqlText := m.readMockSQl()
-	sqls := m.parseMockSQL(sqlText)
-	for _, sql := range sqls {
-		err := m.db.Exec(sql).Error
-		if err != nil {
-			panic(err)
+	for _, filePath := range getFilesBySuffix(m.pathToSqlFileName, "sql") {
+		sqlText := m.readMockSQl(filePath)
+		sqls := m.parseMockSQL(sqlText)
+		for _, sql := range sqls {
+			err := m.db.Exec(sql).Error
+			if err != nil {
+				log.Print(filePath)
+				panic(err)
+			}
 		}
+		log.Printf("sql file %v is loaded", filePath)
 	}
 }
 
 // ReadMockSQl read sql file to string
-func (m *MockDBV2) readMockSQl() string {
-	_, err := os.Stat(m.pathToSqlFileName)
-	if err != nil {
-		log.Printf("(warning)sql file %s not found", m.pathToSqlFileName)
+func (m *MockDBV2) readMockSQl(filePath string) string {
+	if _, err := os.Stat(filePath); err != nil {
+		log.Print(err)
 		return ""
 	}
-	fp, err := os.Open(m.pathToSqlFileName)
+	fp, err := os.Open(filePath)
 	if err != nil {
 		panic(err)
 	}
