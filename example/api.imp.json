@@ -1,24 +1,24 @@
 [
   {
     "request": {
-      "host": "ccc",
+      "host": "www.jenkins.org",
       "method": "POST",
-      "endpoint": "/testRequest"
+      "endpoint": "/.*"
     },
     "response": {
       "status": 200,
-      "body": "Handled hello world aaaaaaaaaa"
+      "body": "jenkins is running"
     }
   },
   {
     "request": {
       "host": "www.baidu.com",
       "method": "GET",
-      "endpoint": "/testRequest"
+      "endpoint": "/{key}/{value}"
     },
     "response": {
       "status": 200,
-      "body": "Handled hello world bbbbbbb"
+      "body": "hello baidu"
     }
   }
 ]

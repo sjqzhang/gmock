@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/sjqzhang/gmock"
-	"github.com/sjqzhang/gmock/mockhttp"
 	"io/ioutil"
 	"net/http"
 )
@@ -33,7 +32,7 @@ func main() {
 }
 
 func testMockDB() {
-	mockdb := gmock.NewMockDB("example/mock.sql")
+	mockdb := gmock.NewMockDB("example")
 	mockdb.RegisterModels(&User{})
 	mockdb.ResetAndInit()
 	db := mockdb.GetGormDB()
@@ -46,7 +45,7 @@ func testMockDB() {
 
 }
 func testMockDBV2() {
-	mockdb := gmock.NewMockDBV2("example/mock.sql")
+	mockdb := gmock.NewMockDBV2("example")
 	mockdb.RegisterModels(&User{})
 	mockdb.ResetAndInit()
 	db := mockdb.GetGormDB()
@@ -82,15 +81,15 @@ func testMockRedis() {
 }
 
 func testMockHttpServer() {
-	server := gmock.NewMockHttpServer("./", []string{"www.baidu.com"})
+	server := gmock.NewMockHttpServer("./", []string{"www.baidu.com","www.jenkins.org"})
 	server.InitMockHttpServer()
-	server.SetReqRspHandler(func(req *mockhttp.Request, rsp *mockhttp.Response) {
-		req.Method = "GET"
-		req.Endpoint = "/HelloWorld"
-		req.Host = "www.baidu.com"
-		rsp.Body = "xxxxxxxxx bbbb"
-	})
-	resp, err := http.Get("http://www.baidu.com/HelloWorld")
+	//server.SetReqRspHandler(func(req *mockhttp.Request, rsp *mockhttp.Response) {
+	//	req.Method = "GET"
+	//	req.Endpoint = "/HelloWorld"
+	//	req.Host = "www.baidu.com"
+	//	rsp.Body = "xxxxxxxxx bbbb"
+	//})
+	resp, err := http.Get("http://www.baidu.com/hello/xxx")
 	if err != nil {
 		panic(err)
 	}
