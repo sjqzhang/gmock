@@ -21,3 +21,7 @@ func NewMockDBV2(pathToSqlFileName string) *mockdb.MockDBV2 {
 func NewMockRedisServer() *mockredis.MockRedisServer {
 	return mockredis.NewMockRedisServer()
 }
+
+func NewMockXORM(pathToSqlFileName string) *mockdb.MockXORM {
+	return mockdb.NewMockXORM(pathToSqlFileName)
+}

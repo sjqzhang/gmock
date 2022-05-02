@@ -27,8 +27,10 @@ func main() {
 
 	testMockDB()
 	testMockDBV2()
+	testMockXorm()
 	testMockRedis()
 	testMockHttpServer()
+
 }
 
 func testMockDB() {
@@ -81,7 +83,7 @@ func testMockRedis() {
 }
 
 func testMockHttpServer() {
-	server := gmock.NewMockHttpServer("./", []string{"www.baidu.com","www.jenkins.org"})
+	server := gmock.NewMockHttpServer("./", []string{"www.baidu.com", "www.jenkins.org"})
 	server.InitMockHttpServer()
 	//server.SetReqRspHandler(func(req *mockhttp.Request, rsp *mockhttp.Response) {
 	//	req.Method = "GET"
@@ -98,4 +100,17 @@ func testMockHttpServer() {
 		panic(err)
 	}
 	fmt.Println(string(data))
+}
+
+func testMockXorm() {
+	mockdb := gmock.NewMockXORM("example")
+	mockdb.RegisterModels(&User{})
+	mockdb.ResetAndInit()
+	db := mockdb.GetXORMEngine()
+	var user User
+	_, err := db.Where("id=?", 1).Get(&user)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(user)
 }

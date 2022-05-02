@@ -43,7 +43,7 @@ func renew2() *gorm.DB {
 	return db
 }
 
-// ResetAndInit reset db instance
+// ResetAndInit reset engine instance
 func (m *MockDBV2) ResetAndInit() {
 	m.db = renew2()
 	m.initModels()
@@ -53,8 +53,12 @@ func (m *MockDBV2) ResetAndInit() {
 func (m *MockDBV2) GetGormDB() *gorm.DB {
 	return m.db
 }
-func (m *MockDBV2) GetSqlDB() (*sql.DB, error) {
-	return m.db.DB()
+func (m *MockDBV2) GetSqlDB() *sql.DB {
+	db, err := m.db.DB()
+	if err != nil {
+		return nil
+	}
+	return db
 }
 
 func (m *MockDBV2) RegisterModels(models ...interface{}) {

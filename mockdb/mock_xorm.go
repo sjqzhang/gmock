@@ -3,74 +3,75 @@ package mockdb
 import (
 	"database/sql"
 	"fmt"
-	"github.com/jinzhu/gorm"
 	"github.com/mattn/go-sqlite3"
 	"io/ioutil"
 	"log"
 	"os"
-	"path/filepath"
 	"reflect"
 	"regexp"
 	"strings"
+	"xorm.io/xorm"
 )
 
-type MockDB struct {
+type MockXORM struct {
 	pathToSqlFileName string `json:"path_to_sql_file_name"`
-	db                *gorm.DB
-	models            []interface{}
+	engine            *xorm.Engine
+	//engine *xorm.Engine
+	models []interface{}
 }
 
-func NewMockDB(pathToSqlFileName string) *MockDB {
-	db := renew()
-	return &MockDB{
+func NewMockXORM(pathToSqlFileName string) *MockXORM {
+	db := renewEngine()
+	return &MockXORM{
 		pathToSqlFileName: pathToSqlFileName,
-		db:                db,
+		engine:            db,
 		models:            make([]interface{}, 0),
 	}
 }
 
-func renew() *gorm.DB {
+func renewEngine() *xorm.Engine {
 	var err error
-	db, err := gorm.Open("sqlite3", ":memory:")
-	db.SingularTable(true)
+	var engine *xorm.Engine
+	engine, err = xorm.NewEngine("sqlite3", ":memory:")
+	//engine.SingularTable(true)
 	if err != nil {
 		panic(err)
 	}
-	return db
+	return engine
 }
-
-func getFilesBySuffix(dir string, suffix string) []string {
-	var files []string
-	filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return fmt.Errorf("%w: error finding imposters", err)
-		}
-		filename := info.Name()
-		if !info.IsDir() {
-			if strings.HasSuffix(filename, suffix) {
-				files = append(files, path)
-			}
-		}
-		return nil
-	})
-	return files
-}
+//
+//func getFilesBySuffix(dir string, suffix string) []string {
+//	var files []string
+//	filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+//		if err != nil {
+//			return fmt.Errorf("%w: error finding imposters", err)
+//		}
+//		filename := info.Name()
+//		if !info.IsDir() {
+//			if strings.HasSuffix(filename, suffix) {
+//				files = append(files, path)
+//			}
+//		}
+//		return nil
+//	})
+//	return files
+//}
 
 // ResetAndInit reset engine instance
-func (m *MockDB) ResetAndInit() {
-	m.db = renew()
+func (m *MockXORM) ResetAndInit() {
+	m.engine = renewEngine()
 	m.initModels()
 	m.initSQL()
 }
 
-func (m *MockDB) GetGormDB() *gorm.DB {
-	return m.db
+func (m *MockXORM) GetXORMEngine() *xorm.Engine {
+	return m.engine
 }
-func (m *MockDB) GetSqlDB() *sql.DB {
-	return m.db.DB()
+func (m *MockXORM) GetSqlDB() *sql.DB {
+	return m.engine.DB().DB
 }
 
-func (m *MockDB) RegisterModels(models ...interface{}) {
+func (m *MockXORM) RegisterModels(models ...interface{}) {
 	if len(models) > 0 {
 		for _, model := range models {
 			mv := reflect.ValueOf(model)
@@ -84,24 +85,24 @@ func (m *MockDB) RegisterModels(models ...interface{}) {
 	}
 }
 
-// InitModels init table schema in db instance
-func (m *MockDB) initModels() {
-	if m.db == nil {
+// InitModels init table schema in engine instance
+func (m *MockXORM) initModels() {
+	if m.engine == nil {
 		panic("warning: call ResetAndInit func first!!!!!")
 	}
 	for _, model := range m.models {
-		err := m.db.AutoMigrate(model).Error
+		err := m.engine.Sync(model)
 		if err != nil {
 			panic(err)
 		}
 	}
 }
-func (m *MockDB) initSQL() {
+func (m *MockXORM) initSQL() {
 	for _, filePath := range getFilesBySuffix(m.pathToSqlFileName, "sql") {
 		sqlText := m.readMockSQl(filePath)
 		sqls := m.parseMockSQL(sqlText)
 		for _, sql := range sqls {
-			err := m.db.Exec(sql).Error
+			_, err := m.engine.Exec(sql)
 			if err != nil {
 				log.Print(filePath)
 				panic(err)
@@ -112,7 +113,7 @@ func (m *MockDB) initSQL() {
 }
 
 // ReadMockSQl read sql file to string
-func (m *MockDB) readMockSQl(filePath string) string {
+func (m *MockXORM) readMockSQl(filePath string) string {
 	_ = sqlite3.SQLITE_COPY
 	if _, err := os.Stat(filePath); err != nil {
 		log.Print(err)
@@ -130,7 +131,7 @@ func (m *MockDB) readMockSQl(filePath string) string {
 }
 
 // parseMockSQL parse sql text to []string
-func (m *MockDB) parseMockSQL(sqlText string) []string {
+func (m *MockXORM) parseMockSQL(sqlText string) []string {
 	reg := regexp.MustCompile(`[\r\n]+`)
 	linses := reg.Split(sqlText, -1)
 	var tmp []string
