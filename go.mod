@@ -12,4 +12,5 @@ require (
 	github.com/sjqzhang/killgrave v0.4.4
 	gorm.io/driver/sqlite v1.3.2
 	gorm.io/gorm v1.23.5
+	xorm.io/xorm v1.3.0
 )
