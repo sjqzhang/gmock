@@ -41,6 +41,8 @@ func NewMockDockerService() *MockDockerService {
 		//containers: make([]*docker.Container, 10),
 	}
 }
+
+//InitContainer 通过容器参数实例化容器
 func (m *MockDockerService) InitContainer(handler func(opts *docker.CreateContainerOptions)) error {
 	var opts docker.CreateContainerOptions
 	var config docker.Config
@@ -53,6 +55,7 @@ func (m *MockDockerService) InitContainer(handler func(opts *docker.CreateContai
 	return m.startService(opts)
 }
 
+// InitContainerWithCmd 通过命令行参数初始化容器
 func (m *MockDockerService) InitContainerWithCmd(handler func(cmd *string)) error {
 	var cmd string
 	handler(&cmd)
@@ -98,6 +101,8 @@ func (m *MockDockerService) startServiceWithCmd(cmdStr string) error {
 	}
 	return nil
 }
+
+//WaitForReady 通过命令检测容器是否准备完成
 func (m *MockDockerService) WaitForReady(checkReadyCommand string, timeout time.Duration) bool {
 	checkReadyCommand = strings.TrimSpace(checkReadyCommand)
 	ticker := time.NewTicker(time.Second)
@@ -140,6 +145,7 @@ func (m *MockDockerService) startService(config docker.CreateContainerOptions) e
 
 }
 
+// Destroy 销毁容器
 func (m *MockDockerService) Destroy() {
 	for _, container := range m.containers {
 		id := container.ID
