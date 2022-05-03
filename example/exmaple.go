@@ -51,7 +51,9 @@ func testMockDB() {
 }
 func testMockDBV2() {
 	mockdb := gmock.NewMockDBV2("example")
+	//注册模型
 	mockdb.RegisterModels(&User{})
+	//初始化数据库及表数据
 	mockdb.ResetAndInit()
 	db := mockdb.GetGormDB()
 	var user User
@@ -86,6 +88,7 @@ func testMockRedis() {
 }
 
 func testMockHttpServer() {
+	// 只支持 http 不支持 https
 	server := gmock.NewMockHttpServer("./", []string{"www.baidu.com", "www.jenkins.org"})
 	server.InitMockHttpServer()
 	//server.SetReqRspHandler(func(req *mockhttp.Request, rsp *mockhttp.Response) {
@@ -122,10 +125,11 @@ func testMockDocker() {
 	mock := mockdocker.NewMockDockerService()
 	defer mock.Destroy()
 	err := mock.InitContainerWithCmd(func(cmd *string) {
+		//  注意：容器必须后台运行，否则会挂起，程序不会继续执行
 		*cmd = "docker run --name some-mysql  -p 3308:3306 -e MYSQL_ROOT_PASSWORD=root -d mysql:5.7"
 	})
 	fmt.Println(err)
-	if !mock.WaitForReady("wget 127.0.0.1:3308 -O -",time.Second*50) {
+	if !mock.WaitForReady("wget 127.0.0.1:3308 -O -", time.Second*50) {
 		panic(fmt.Errorf("mysql start fail"))
 	}
 	fmt.Println("mysql start success")
