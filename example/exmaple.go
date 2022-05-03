@@ -27,12 +27,11 @@ func StrToPrt(s string) *string {
 
 func main() {
 
-	//testMockDB()
-	//testMockDBV2()
-	//testMockXorm()
-	//testMockRedis()
-	//testMockHttpServer()
-
+	testMockDB()
+	testMockDBV2()
+	testMockXorm()
+	testMockRedis()
+	testMockHttpServer()
 	testMockDocker()
 
 }
