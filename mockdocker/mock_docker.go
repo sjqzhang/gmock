@@ -1,6 +1,7 @@
 package mockdocker
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	docker "github.com/fsouza/go-dockerclient"
@@ -9,6 +10,7 @@ import (
 	"os/exec"
 	"regexp"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -60,7 +62,9 @@ func (m *MockDockerService) startServiceWithCmd(cmdStr string) error {
 	if strings.Index(cmdStr, " -d ") == -1 {
 		return errors.New("(warning)container must be run in background, run with -d option!!!!")
 	}
-	cmds := strings.Split(cmdStr, " ")
+	exp := regexp.MustCompile(`\s+`)
+	cmdStr = strings.TrimSpace(cmdStr)
+	cmds := exp.Split(cmdStr, -1)
 	cmdProcess := exec.Command(cmds[0], cmds[1:]...)
 	stdout, err := cmdProcess.StdoutPipe()
 	stderr, err := cmdProcess.StderrPipe()
@@ -74,7 +78,6 @@ func (m *MockDockerService) startServiceWithCmd(cmdStr string) error {
 	errBytes, _ := ioutil.ReadAll(stderr)
 	if len(errBytes) > 0 {
 		log.Println(string(errBytes))
-		return err
 	}
 	opBytes, err := ioutil.ReadAll(stdout)
 	if len(opBytes) > 64 {
@@ -86,6 +89,29 @@ func (m *MockDockerService) startServiceWithCmd(cmdStr string) error {
 		log.Println(string(opBytes))
 	}
 	return nil
+}
+func (m *MockDockerService) WaitForReady(checkReadyCommand string, timeout time.Duration) bool {
+	checkReadyCommand = strings.TrimSpace(checkReadyCommand)
+	ticker := time.NewTicker(time.Second)
+	exp := regexp.MustCompile(`\s+`)
+	cmds := exp.Split(checkReadyCommand, -1)
+	start := time.Now()
+	for {
+		<-ticker.C
+		if time.Now().Sub(start) > timeout {
+			return false
+		}
+		ctx, _ := context.WithTimeout(context.Background(), timeout)
+		process := exec.CommandContext(ctx, cmds[0], cmds[1:]...)
+		var buf bytes.Buffer
+		process.Stdout = &buf
+		process.Stderr = &buf
+		process.Run()
+		log.Println(string(buf.Bytes()))
+		if process.ProcessState.Sys().(syscall.WaitStatus).ExitStatus() == 0 {
+			return true
+		}
+	}
 }
 func (m *MockDockerService) startService(config docker.CreateContainerOptions) error {
 

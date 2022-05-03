@@ -26,7 +26,7 @@ func StrToPrt(s string) *string {
 }
 
 func main() {
-
+	//
 	testMockDB()
 	testMockDBV2()
 	testMockXorm()
@@ -122,10 +122,18 @@ func testMockDocker() {
 	mock := mockdocker.NewMockDockerService()
 	defer mock.Destroy()
 	err := mock.InitContainerWithCmd(func(cmd *string) {
-		*cmd = "docker run --name some-mysql -e MYSQL_ROOT_PASSWORD=root -d mysql:5.7"
+		*cmd = "docker run --name some-mysql  -p 3308:3306 -e MYSQL_ROOT_PASSWORD=root -d mysql:5.7"
 	})
 	fmt.Println(err)
-	time.Sleep(time.Second*20)
-	//mock.Destroy()
+	if !mock.WaitForReady("wget 127.0.0.1:3308 -O -",time.Second*50) {
+		panic(fmt.Errorf("mysql start fail"))
+	}
+	fmt.Println("mysql start success")
+
+
+
+
+
+
 
 }
