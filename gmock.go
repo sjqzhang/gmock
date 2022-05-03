@@ -10,11 +10,11 @@ func NewMockHttpServer(mockJSONDir string, allowProxyHosts []string) *mockhttp.M
 	return mockhttp.NewMockHttpServer(mockJSONDir, allowProxyHosts)
 }
 
-func NewMockDB(pathToSqlFileName string) *mockdb.MockDB {
+func NewMockDB(pathToSqlFileName string) *mockdb.MockGorm {
 	return mockdb.NewMockDB(pathToSqlFileName)
 }
 
-func NewMockDBV2(pathToSqlFileName string) *mockdb.MockDBV2 {
+func NewMockDBV2(pathToSqlFileName string) *mockdb.MockGormV2 {
 	return mockdb.NewMockDBV2(pathToSqlFileName)
 }
 
