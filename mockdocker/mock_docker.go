@@ -1,8 +1,15 @@
 package mockdocker
 
 import (
+	"context"
+	"errors"
 	docker "github.com/fsouza/go-dockerclient"
+	"io/ioutil"
 	"log"
+	"os/exec"
+	"regexp"
+	"strings"
+	"time"
 )
 
 func getDockerClient() (*docker.Client, error) {
@@ -15,10 +22,10 @@ type MockService interface {
 	Destroy()
 }
 
-
 type MockDockerService struct {
-	client     *docker.Client
-	containers []*docker.Container
+	client       *docker.Client
+	containers   []*docker.Container
+	containerIDs []string
 }
 
 func NewMockDockerService() *MockDockerService {
@@ -37,14 +44,49 @@ func (m *MockDockerService) InitContainer(handler func(opts *docker.CreateContai
 	var hostConfig docker.HostConfig
 	opts.Config = &config
 	opts.HostConfig = &hostConfig
+	portBinder := make(map[docker.Port][]docker.PortBinding)
+	opts.HostConfig.PortBindings = portBinder
 	handler(&opts)
-	//var pullOpts docker.PullImageOptions
-	//pullOpts.Repository=opts.Config.Image
-	//var auth docker.AuthConfiguration
-	//m.client.PullImage(pullOpts,auth)
 	return m.startService(opts)
 }
 
+func (m *MockDockerService) InitContainerWithCmd(handler func(cmd *string)) error {
+	var cmd string
+	handler(&cmd)
+	return m.startServiceWithCmd(cmd)
+}
+
+func (m *MockDockerService) startServiceWithCmd(cmdStr string) error {
+	if strings.Index(cmdStr, " -d ") == -1 {
+		return errors.New("(warning)container must be run in background, run with -d option!!!!")
+	}
+	cmds := strings.Split(cmdStr, " ")
+	cmdProcess := exec.Command(cmds[0], cmds[1:]...)
+	stdout, err := cmdProcess.StdoutPipe()
+	stderr, err := cmdProcess.StderrPipe()
+	if err != nil {
+		return err
+	}
+	defer stdout.Close()
+	if err = cmdProcess.Start(); err != nil {
+		return err
+	}
+	errBytes, _ := ioutil.ReadAll(stderr)
+	if len(errBytes) > 0 {
+		log.Println(string(errBytes))
+		return err
+	}
+	opBytes, err := ioutil.ReadAll(stdout)
+	if len(opBytes) > 64 {
+		id := opBytes[0:63]
+		if regexp.MustCompile("[a-z0-9]").Match(id) {
+			m.containerIDs = append(m.containerIDs, string(id))
+		}
+	} else {
+		log.Println(string(opBytes))
+	}
+	return nil
+}
 func (m *MockDockerService) startService(config docker.CreateContainerOptions) error {
 
 	container, err := m.client.CreateContainer(config)
@@ -75,6 +117,16 @@ func (m *MockDockerService) Destroy() {
 		if err2 != nil {
 			log.Println(err)
 		}
+	}
+
+	for _, containerid := range m.containerIDs {
+		ctx := context.Background()
+		ctx, cannel := context.WithTimeout(ctx, time.Second*15)
+		defer cannel()
+		cmd := exec.CommandContext(ctx, "docker", "stop", containerid)
+		cmd.Run()
+		cmd = exec.Command("docker", "rm", containerid)
+		cmd.Run()
 	}
 
 }
