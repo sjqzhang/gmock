@@ -56,20 +56,21 @@ func getFilesBySuffix(dir string, suffix string) []string {
 	return files
 }
 
-// ResetAndInit reset engine instance
+// ResetAndInit 初始化数据库及表数据
 func (m *MockGorm) ResetAndInit() {
 	m.db = renew()
 	m.initModels()
 	m.initSQL()
 }
-
+// GetGormDB 获取Gorm实例
 func (m *MockGorm) GetGormDB() *gorm.DB {
 	return m.db
 }
+// GetSqlDB  获取*sql.DB实例
 func (m *MockGorm) GetSqlDB() *sql.DB {
 	return m.db.DB()
 }
-
+// RegisterModels 注册模型
 func (m *MockGorm) RegisterModels(models ...interface{}) {
 	if len(models) > 0 {
 		for _, model := range models {

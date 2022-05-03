@@ -39,6 +39,7 @@ func renewEngine() *xorm.Engine {
 	}
 	return engine
 }
+
 //
 //func getFilesBySuffix(dir string, suffix string) []string {
 //	var files []string
@@ -57,20 +58,24 @@ func renewEngine() *xorm.Engine {
 //	return files
 //}
 
-// ResetAndInit reset engine instance
+// ResetAndInit 初始化数据库及表数据
 func (m *MockXORM) ResetAndInit() {
 	m.engine = renewEngine()
 	m.initModels()
 	m.initSQL()
 }
 
+//GetXORMEngine 获取 *xorm.Engine实例
 func (m *MockXORM) GetXORMEngine() *xorm.Engine {
 	return m.engine
 }
+
+// GetSqlDB  获取*sql.DB实例
 func (m *MockXORM) GetSqlDB() *sql.DB {
 	return m.engine.DB().DB
 }
 
+// RegisterModels 注册模型
 func (m *MockXORM) RegisterModels(models ...interface{}) {
 	if len(models) > 0 {
 		for _, model := range models {

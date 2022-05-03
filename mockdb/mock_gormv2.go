@@ -43,16 +43,17 @@ func renew2() *gorm.DB {
 	return db
 }
 
-// ResetAndInit reset engine instance
+// ResetAndInit 初始化数据库及表数据
 func (m *MockGormV2) ResetAndInit() {
 	m.db = renew2()
 	m.initModels()
 	m.initSQL()
 }
-
+// GetGormDB 获取Gorm实例
 func (m *MockGormV2) GetGormDB() *gorm.DB {
 	return m.db
 }
+// GetSqlDB  获取*sql.DB实例
 func (m *MockGormV2) GetSqlDB() *sql.DB {
 	db, err := m.db.DB()
 	if err != nil {
@@ -60,7 +61,7 @@ func (m *MockGormV2) GetSqlDB() *sql.DB {
 	}
 	return db
 }
-
+// RegisterModels 注册模型
 func (m *MockGormV2) RegisterModels(models ...interface{}) {
 	if len(models) > 0 {
 		for _, model := range models {
