@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	docker "github.com/fsouza/go-dockerclient"
+	"io"
 	"io/ioutil"
 	"log"
 	"os/exec"
@@ -60,7 +61,7 @@ func (m *MockDockerService) InitContainerWithCmd(handler func(cmd *string)) erro
 
 func (m *MockDockerService) startServiceWithCmd(cmdStr string) error {
 	if strings.Index(cmdStr, " -d ") == -1 {
-		return errors.New("(warning)container must be run in background, run with -d option!!!!")
+		return errors.New("(warning)Container must be run in background, run with -d option")
 	}
 	exp := regexp.MustCompile(`\s+`)
 	cmdStr = strings.TrimSpace(cmdStr)
@@ -71,7 +72,14 @@ func (m *MockDockerService) startServiceWithCmd(cmdStr string) error {
 	if err != nil {
 		return err
 	}
-	defer stdout.Close()
+	defer func(stdout io.ReadCloser, stderr io.ReadCloser) {
+		if stderr != nil {
+			_ = stderr.Close()
+		}
+		if stdout != nil {
+			_ = stdout.Close()
+		}
+	}(stdout, stderr)
 	if err = cmdProcess.Start(); err != nil {
 		return err
 	}
@@ -106,7 +114,10 @@ func (m *MockDockerService) WaitForReady(checkReadyCommand string, timeout time.
 		var buf bytes.Buffer
 		process.Stdout = &buf
 		process.Stderr = &buf
-		process.Run()
+		err := process.Run()
+		if err != nil {
+			log.Println(err)
+		}
 		log.Println(string(buf.Bytes()))
 		if process.ProcessState.Sys().(syscall.WaitStatus).ExitStatus() == 0 {
 			return true
@@ -146,13 +157,18 @@ func (m *MockDockerService) Destroy() {
 	}
 
 	for _, containerid := range m.containerIDs {
-		ctx := context.Background()
-		ctx, cannel := context.WithTimeout(ctx, time.Second*15)
-		defer cannel()
+		ctx, _ := context.WithTimeout(context.Background(), time.Second*15)
+		//defer cannel()
 		cmd := exec.CommandContext(ctx, "docker", "stop", containerid)
-		cmd.Run()
+		err := cmd.Run()
+		if err != nil {
+			log.Println(err)
+		}
 		cmd = exec.Command("docker", "rm", containerid)
-		cmd.Run()
+		err = cmd.Run()
+		if err != nil {
+			log.Println(err)
+		}
 	}
 
 }

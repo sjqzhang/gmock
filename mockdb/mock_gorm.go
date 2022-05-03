@@ -14,15 +14,15 @@ import (
 	"strings"
 )
 
-type MockDB struct {
+type MockGorm struct {
 	pathToSqlFileName string `json:"path_to_sql_file_name"`
 	db                *gorm.DB
 	models            []interface{}
 }
 
-func NewMockDB(pathToSqlFileName string) *MockDB {
+func NewMockDB(pathToSqlFileName string) *MockGorm {
 	db := renew()
-	return &MockDB{
+	return &MockGorm{
 		pathToSqlFileName: pathToSqlFileName,
 		db:                db,
 		models:            make([]interface{}, 0),
@@ -57,20 +57,20 @@ func getFilesBySuffix(dir string, suffix string) []string {
 }
 
 // ResetAndInit reset engine instance
-func (m *MockDB) ResetAndInit() {
+func (m *MockGorm) ResetAndInit() {
 	m.db = renew()
 	m.initModels()
 	m.initSQL()
 }
 
-func (m *MockDB) GetGormDB() *gorm.DB {
+func (m *MockGorm) GetGormDB() *gorm.DB {
 	return m.db
 }
-func (m *MockDB) GetSqlDB() *sql.DB {
+func (m *MockGorm) GetSqlDB() *sql.DB {
 	return m.db.DB()
 }
 
-func (m *MockDB) RegisterModels(models ...interface{}) {
+func (m *MockGorm) RegisterModels(models ...interface{}) {
 	if len(models) > 0 {
 		for _, model := range models {
 			mv := reflect.ValueOf(model)
@@ -85,7 +85,7 @@ func (m *MockDB) RegisterModels(models ...interface{}) {
 }
 
 // InitModels init table schema in db instance
-func (m *MockDB) initModels() {
+func (m *MockGorm) initModels() {
 	if m.db == nil {
 		panic("warning: call ResetAndInit func first!!!!!")
 	}
@@ -96,7 +96,7 @@ func (m *MockDB) initModels() {
 		}
 	}
 }
-func (m *MockDB) initSQL() {
+func (m *MockGorm) initSQL() {
 	for _, filePath := range getFilesBySuffix(m.pathToSqlFileName, "sql") {
 		sqlText := m.readMockSQl(filePath)
 		sqls := m.parseMockSQL(sqlText)
@@ -112,7 +112,7 @@ func (m *MockDB) initSQL() {
 }
 
 // ReadMockSQl read sql file to string
-func (m *MockDB) readMockSQl(filePath string) string {
+func (m *MockGorm) readMockSQl(filePath string) string {
 	_ = sqlite3.SQLITE_COPY
 	if _, err := os.Stat(filePath); err != nil {
 		log.Print(err)
@@ -130,7 +130,7 @@ func (m *MockDB) readMockSQl(filePath string) string {
 }
 
 // parseMockSQL parse sql text to []string
-func (m *MockDB) parseMockSQL(sqlText string) []string {
+func (m *MockGorm) parseMockSQL(sqlText string) []string {
 	reg := regexp.MustCompile(`[\r\n]+`)
 	linses := reg.Split(sqlText, -1)
 	var tmp []string

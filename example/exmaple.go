@@ -130,10 +130,4 @@ func testMockDocker() {
 	}
 	fmt.Println("mysql start success")
 
-
-
-
-
-
-
 }

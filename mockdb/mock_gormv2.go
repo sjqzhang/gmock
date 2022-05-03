@@ -14,15 +14,15 @@ import (
 	"strings"
 )
 
-type MockDBV2 struct {
+type MockGormV2 struct {
 	pathToSqlFileName string `json:"path_to_sql_file_name"`
 	db                *gorm.DB
 	models            []interface{}
 }
 
-func NewMockDBV2(pathToSqlFileName string) *MockDBV2 {
+func NewMockDBV2(pathToSqlFileName string) *MockGormV2 {
 	db := renew2()
-	return &MockDBV2{
+	return &MockGormV2{
 		pathToSqlFileName: pathToSqlFileName,
 		db:                db,
 		models:            make([]interface{}, 0),
@@ -44,16 +44,16 @@ func renew2() *gorm.DB {
 }
 
 // ResetAndInit reset engine instance
-func (m *MockDBV2) ResetAndInit() {
+func (m *MockGormV2) ResetAndInit() {
 	m.db = renew2()
 	m.initModels()
 	m.initSQL()
 }
 
-func (m *MockDBV2) GetGormDB() *gorm.DB {
+func (m *MockGormV2) GetGormDB() *gorm.DB {
 	return m.db
 }
-func (m *MockDBV2) GetSqlDB() *sql.DB {
+func (m *MockGormV2) GetSqlDB() *sql.DB {
 	db, err := m.db.DB()
 	if err != nil {
 		return nil
@@ -61,7 +61,7 @@ func (m *MockDBV2) GetSqlDB() *sql.DB {
 	return db
 }
 
-func (m *MockDBV2) RegisterModels(models ...interface{}) {
+func (m *MockGormV2) RegisterModels(models ...interface{}) {
 	if len(models) > 0 {
 		for _, model := range models {
 			mv := reflect.ValueOf(model)
@@ -76,7 +76,7 @@ func (m *MockDBV2) RegisterModels(models ...interface{}) {
 }
 
 // InitModels init table schema in db instance
-func (m *MockDBV2) initModels() {
+func (m *MockGormV2) initModels() {
 	if m.db == nil {
 		panic("warning: call ResetAndInit func first!!!!!")
 	}
@@ -87,12 +87,12 @@ func (m *MockDBV2) initModels() {
 		}
 	}
 }
-func (m *MockDBV2) initSQL() {
+func (m *MockGormV2) initSQL() {
 	for _, filePath := range getFilesBySuffix(m.pathToSqlFileName, "sql") {
 		sqlText := m.readMockSQl(filePath)
 		sqls := m.parseMockSQL(sqlText)
-		for _, sql := range sqls {
-			err := m.db.Exec(sql).Error
+		for _, sqlStr := range sqls {
+			err := m.db.Exec(sqlStr).Error
 			if err != nil {
 				log.Print(filePath)
 				panic(err)
@@ -103,7 +103,7 @@ func (m *MockDBV2) initSQL() {
 }
 
 // ReadMockSQl read sql file to string
-func (m *MockDBV2) readMockSQl(filePath string) string {
+func (m *MockGormV2) readMockSQl(filePath string) string {
 	if _, err := os.Stat(filePath); err != nil {
 		log.Print(err)
 		return ""
@@ -120,7 +120,7 @@ func (m *MockDBV2) readMockSQl(filePath string) string {
 }
 
 // parseMockSQL parse sql text to []string
-func (m *MockDBV2) parseMockSQL(sqlText string) []string {
+func (m *MockGormV2) parseMockSQL(sqlText string) []string {
 	reg := regexp.MustCompile(`[\r\n]+`)
 	linses := reg.Split(sqlText, -1)
 	var tmp []string
