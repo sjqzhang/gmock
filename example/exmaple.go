@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
+	docker "github.com/fsouza/go-dockerclient"
 	"github.com/sjqzhang/gmock"
+	"github.com/sjqzhang/gmock/mockdocker"
 	"io/ioutil"
 	"net/http"
 )
@@ -25,11 +27,13 @@ func StrToPrt(s string) *string {
 
 func main() {
 
-	testMockDB()
-	testMockDBV2()
-	testMockXorm()
-	testMockRedis()
-	testMockHttpServer()
+	//testMockDB()
+	//testMockDBV2()
+	//testMockXorm()
+	//testMockRedis()
+	//testMockHttpServer()
+
+	testMockDocker()
 
 }
 
@@ -113,4 +117,20 @@ func testMockXorm() {
 		panic(err)
 	}
 	fmt.Println(user)
+}
+
+func testMockDocker() {
+	mock := mockdocker.NewMockDockerService()
+	//defer mock.Destroy()
+
+	err := mock.InitContainer(func(opts *docker.CreateContainerOptions) {
+		//opts.Name = "alpine"
+		opts.Config.Image = "alpine"
+		opts.Config.AttachStdout = true
+		opts.Config.Cmd = []string{"sleep", "100"}
+
+	})
+
+	fmt.Println(err)
+
 }

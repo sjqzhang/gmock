@@ -4,6 +4,7 @@ go 1.16
 
 require (
 	github.com/alicebob/miniredis/v2 v2.20.0
+	github.com/fsouza/go-dockerclient v1.7.10
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/gomodule/redigo v1.8.8
 	github.com/gorilla/mux v1.8.0
