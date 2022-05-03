@@ -14,15 +14,15 @@ import (
 	"strings"
 )
 
-type MockGormV2 struct {
+type MockGORMV2 struct {
 	pathToSqlFileName string `json:"path_to_sql_file_name"`
 	db                *gorm.DB
 	models            []interface{}
 }
 
-func NewMockDBV2(pathToSqlFileName string) *MockGormV2 {
+func NewMockGORMV2(pathToSqlFileName string) *MockGORMV2 {
 	db := renew2()
-	return &MockGormV2{
+	return &MockGORMV2{
 		pathToSqlFileName: pathToSqlFileName,
 		db:                db,
 		models:            make([]interface{}, 0),
@@ -44,17 +44,17 @@ func renew2() *gorm.DB {
 }
 
 // ResetAndInit 初始化数据库及表数据
-func (m *MockGormV2) ResetAndInit() {
+func (m *MockGORMV2) ResetAndInit() {
 	m.db = renew2()
 	m.initModels()
 	m.initSQL()
 }
 // GetGormDB 获取Gorm实例
-func (m *MockGormV2) GetGormDB() *gorm.DB {
+func (m *MockGORMV2) GetGormDB() *gorm.DB {
 	return m.db
 }
 // GetSqlDB  获取*sql.DB实例
-func (m *MockGormV2) GetSqlDB() *sql.DB {
+func (m *MockGORMV2) GetSqlDB() *sql.DB {
 	db, err := m.db.DB()
 	if err != nil {
 		return nil
@@ -62,7 +62,7 @@ func (m *MockGormV2) GetSqlDB() *sql.DB {
 	return db
 }
 // RegisterModels 注册模型
-func (m *MockGormV2) RegisterModels(models ...interface{}) {
+func (m *MockGORMV2) RegisterModels(models ...interface{}) {
 	if len(models) > 0 {
 		for _, model := range models {
 			mv := reflect.ValueOf(model)
@@ -77,7 +77,7 @@ func (m *MockGormV2) RegisterModels(models ...interface{}) {
 }
 
 // InitModels init table schema in db instance
-func (m *MockGormV2) initModels() {
+func (m *MockGORMV2) initModels() {
 	if m.db == nil {
 		panic("warning: call ResetAndInit func first!!!!!")
 	}
@@ -88,7 +88,7 @@ func (m *MockGormV2) initModels() {
 		}
 	}
 }
-func (m *MockGormV2) initSQL() {
+func (m *MockGORMV2) initSQL() {
 	for _, filePath := range getFilesBySuffix(m.pathToSqlFileName, "sql") {
 		sqlText := m.readMockSQl(filePath)
 		sqls := m.parseMockSQL(sqlText)
@@ -104,7 +104,7 @@ func (m *MockGormV2) initSQL() {
 }
 
 // ReadMockSQl read sql file to string
-func (m *MockGormV2) readMockSQl(filePath string) string {
+func (m *MockGORMV2) readMockSQl(filePath string) string {
 	if _, err := os.Stat(filePath); err != nil {
 		log.Print(err)
 		return ""
@@ -121,7 +121,7 @@ func (m *MockGormV2) readMockSQl(filePath string) string {
 }
 
 // parseMockSQL parse sql text to []string
-func (m *MockGormV2) parseMockSQL(sqlText string) []string {
+func (m *MockGORMV2) parseMockSQL(sqlText string) []string {
 	reg := regexp.MustCompile(`[\r\n]+`)
 	linses := reg.Split(sqlText, -1)
 	var tmp []string

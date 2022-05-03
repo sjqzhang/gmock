@@ -16,28 +16,20 @@ type User struct {
 	Age  int    `json:"age"`
 }
 
-func IntToPrt(i int) *int {
-	v := i
-	return &v
-}
-func StrToPrt(s string) *string {
-	v := s
-	return &v
-}
 
 func main() {
 	//
-	testMockDB()
-	testMockDBV2()
-	testMockXorm()
+	testMockGORM()
+	testMockGORMV2()
+	testMockXORM()
 	testMockRedis()
 	testMockHttpServer()
 	testMockDocker()
 
 }
 
-func testMockDB() {
-	mockdb := gmock.NewMockDB("example")
+func testMockGORM() {
+	mockdb := gmock.NewMockGORM("example")
 	mockdb.RegisterModels(&User{})
 	mockdb.ResetAndInit()
 	db := mockdb.GetGormDB()
@@ -49,8 +41,8 @@ func testMockDB() {
 	fmt.Println(user)
 
 }
-func testMockDBV2() {
-	mockdb := gmock.NewMockDBV2("example")
+func testMockGORMV2() {
+	mockdb := gmock.NewMockGORMV2("example")
 	//注册模型
 	mockdb.RegisterModels(&User{})
 	//初始化数据库及表数据
@@ -108,7 +100,7 @@ func testMockHttpServer() {
 	fmt.Println(string(data))
 }
 
-func testMockXorm() {
+func testMockXORM() {
 	mockdb := gmock.NewMockXORM("example")
 	mockdb.RegisterModels(&User{})
 	mockdb.ResetAndInit()

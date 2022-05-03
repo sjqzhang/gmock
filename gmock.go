@@ -10,12 +10,12 @@ func NewMockHttpServer(mockJSONDir string, allowProxyHosts []string) *mockhttp.M
 	return mockhttp.NewMockHttpServer(mockJSONDir, allowProxyHosts)
 }
 
-func NewMockDB(pathToSqlFileName string) *mockdb.MockGorm {
-	return mockdb.NewMockDB(pathToSqlFileName)
+func NewMockGORM(pathToSqlFileName string) *mockdb.MockGORM {
+	return mockdb.NewMockGORM(pathToSqlFileName)
 }
 
-func NewMockDBV2(pathToSqlFileName string) *mockdb.MockGormV2 {
-	return mockdb.NewMockDBV2(pathToSqlFileName)
+func NewMockGORMV2(pathToSqlFileName string) *mockdb.MockGORMV2 {
+	return mockdb.NewMockGORMV2(pathToSqlFileName)
 }
 
 func NewMockRedisServer() *mockredis.MockRedisServer {
