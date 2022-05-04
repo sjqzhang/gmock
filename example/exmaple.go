@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"github.com/sjqzhang/gmock"
 	"github.com/sjqzhang/gmock/mockdocker"
@@ -16,7 +17,6 @@ type User struct {
 	Age  int    `json:"age"`
 }
 
-
 func main() {
 	//
 	testMockGORM()
@@ -26,6 +26,34 @@ func main() {
 	testMockHttpServer()
 	testMockDocker()
 
+}
+
+func Fetch(db *sql.DB, sqlStr string, args ...interface{}) ([]map[string]interface{}, error) {
+	rows, err :=  db.Query(sqlStr, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	cys, err := rows.ColumnTypes()
+	if err != nil {
+		return nil, err
+	}
+	var result []map[string]interface{}
+	for rows.Next() {
+		l := len(cys)
+		vals := make([]interface{}, l)
+		valPtr := make([]interface{}, l)
+		for i, _ := range vals {
+			valPtr[i] = &vals[i]
+		}
+		row := make(map[string]interface{}, l)
+		rows.Scan(valPtr...)
+		for i, c := range cys {
+			row[c.Name()] = vals[i]
+		}
+		result=append(result,row)
+	}
+	return result, nil
 }
 
 func testMockGORM() {
@@ -39,6 +67,12 @@ func testMockGORM() {
 		panic(err)
 	}
 	fmt.Println(user)
+//	result, err := Fetch(db.DB(), `WITH tables AS (SELECT name tableName, sql
+//FROM sqlite_master WHERE type = 'table' AND tableName NOT LIKE 'sqlite_%')
+//SELECT fields.name, fields.type, tableName
+//FROM tables CROSS JOIN pragma_table_info(tables.tableName) fields`)
+//	data,err:=json.Marshal(result)
+//	fmt.Println(string(data),err)
 
 }
 func testMockGORMV2() {
