@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"github.com/sjqzhang/gmock"
 	"github.com/sjqzhang/gmock/mockdocker"
@@ -28,33 +27,7 @@ func main() {
 
 }
 
-func Fetch(db *sql.DB, sqlStr string, args ...interface{}) ([]map[string]interface{}, error) {
-	rows, err :=  db.Query(sqlStr, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	cys, err := rows.ColumnTypes()
-	if err != nil {
-		return nil, err
-	}
-	var result []map[string]interface{}
-	for rows.Next() {
-		l := len(cys)
-		vals := make([]interface{}, l)
-		valPtr := make([]interface{}, l)
-		for i, _ := range vals {
-			valPtr[i] = &vals[i]
-		}
-		row := make(map[string]interface{}, l)
-		rows.Scan(valPtr...)
-		for i, c := range cys {
-			row[c.Name()] = vals[i]
-		}
-		result=append(result,row)
-	}
-	return result, nil
-}
+
 
 func testMockGORM() {
 	mockdb := gmock.NewMockGORM("example")

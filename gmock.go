@@ -4,6 +4,7 @@ import (
 	"github.com/sjqzhang/gmock/mockdb"
 	"github.com/sjqzhang/gmock/mockhttp"
 	"github.com/sjqzhang/gmock/mockredis"
+	"github.com/sjqzhang/gmock/util"
 )
 
 func NewMockHttpServer(mockJSONDir string, allowProxyHosts []string) *mockhttp.MockHttpServer {
@@ -24,4 +25,8 @@ func NewMockRedisServer() *mockredis.MockRedisServer {
 
 func NewMockXORM(pathToSqlFileName string) *mockdb.MockXORM {
 	return mockdb.NewMockXORM(pathToSqlFileName)
+}
+
+func NewDBUtil(pathToSqlFileName string) *util.DBUtil {
+	return util.NewDBUtil()
 }
