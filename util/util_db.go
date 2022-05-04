@@ -71,7 +71,7 @@ func (u *DBUtil) QueryOneBySQL(db *sql.DB, sqlStr string, args ...interface{}) (
 	return row, nil
 }
 
-func (u *DBUtil) QueryObjectBySQL(db *sql.DB, obj interface, sqlStr string, args ...interface{}) error {
+func (u *DBUtil) QueryObjectBySQL(db *sql.DB, obj interface{}, sqlStr string, args ...interface{}) error {
 	if reflect.TypeOf(obj).Kind() != reflect.Ptr {
 		errors.New("obj must be a pointer")
 	}
