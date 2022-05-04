@@ -27,6 +27,6 @@ func NewMockXORM(pathToSqlFileName string) *mockdb.MockXORM {
 	return mockdb.NewMockXORM(pathToSqlFileName)
 }
 
-func NewDBUtil(pathToSqlFileName string) *util.DBUtil {
+func NewDBUtil() *util.DBUtil {
 	return util.NewDBUtil()
 }
