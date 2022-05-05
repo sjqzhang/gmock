@@ -18,14 +18,16 @@ type MockGORMV2 struct {
 	pathToSqlFileName string `json:"path_to_sql_file_name"`
 	db                *gorm.DB
 	models            []interface{}
+	resetHandler      func(resetHandler *MockGORMV2)
 }
 
-func NewMockGORMV2(pathToSqlFileName string) *MockGORMV2 {
+func NewMockGORMV2(pathToSqlFileName string, resetHandler func(orm *MockGORMV2)) *MockGORMV2 {
 	db := renew2()
 	return &MockGORMV2{
 		pathToSqlFileName: pathToSqlFileName,
 		db:                db,
 		models:            make([]interface{}, 0),
+		resetHandler:      resetHandler,
 	}
 }
 
@@ -46,13 +48,18 @@ func renew2() *gorm.DB {
 // ResetAndInit 初始化数据库及表数据
 func (m *MockGORMV2) ResetAndInit() {
 	m.db = renew2()
+	if m.resetHandler!=nil {
+		m.resetHandler(m)
+	}
 	m.initModels()
 	m.initSQL()
 }
+
 // GetGormDB 获取Gorm实例
 func (m *MockGORMV2) GetGormDB() *gorm.DB {
 	return m.db
 }
+
 // GetSqlDB  获取*sql.DB实例
 func (m *MockGORMV2) GetSqlDB() *sql.DB {
 	db, err := m.db.DB()
@@ -61,6 +68,7 @@ func (m *MockGORMV2) GetSqlDB() *sql.DB {
 	}
 	return db
 }
+
 // RegisterModels 注册模型
 func (m *MockGORMV2) RegisterModels(models ...interface{}) {
 	if len(models) > 0 {
