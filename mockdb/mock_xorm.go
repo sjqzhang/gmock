@@ -17,15 +17,17 @@ type MockXORM struct {
 	pathToSqlFileName string `json:"path_to_sql_file_name"`
 	engine            *xorm.Engine
 	//engine *xorm.Engine
-	models []interface{}
+	models       []interface{}
+	resetHandler func(orm *MockXORM)
 }
 
-func NewMockXORM(pathToSqlFileName string) *MockXORM {
+func NewMockXORM(pathToSqlFileName string, resetHandler func(orm *MockXORM)) *MockXORM {
 	db := renewEngine()
 	return &MockXORM{
 		pathToSqlFileName: pathToSqlFileName,
 		engine:            db,
 		models:            make([]interface{}, 0),
+		resetHandler:      resetHandler,
 	}
 }
 
@@ -61,6 +63,9 @@ func renewEngine() *xorm.Engine {
 // ResetAndInit 初始化数据库及表数据
 func (m *MockXORM) ResetAndInit() {
 	m.engine = renewEngine()
+	if m.resetHandler != nil {
+		m.resetHandler(m)
+	}
 	m.initModels()
 	m.initSQL()
 }

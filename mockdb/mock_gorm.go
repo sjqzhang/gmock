@@ -18,14 +18,16 @@ type MockGORM struct {
 	pathToSqlFileName string `json:"path_to_sql_file_name"`
 	db                *gorm.DB
 	models            []interface{}
+	resetHandler      func(orm *MockGORM)
 }
 
-func NewMockGORM(pathToSqlFileName string) *MockGORM {
+func NewMockGORM(pathToSqlFileName string, resetHandler func(orm *MockGORM)) *MockGORM {
 	db := renew()
 	return &MockGORM{
 		pathToSqlFileName: pathToSqlFileName,
 		db:                db,
 		models:            make([]interface{}, 0),
+		resetHandler:      resetHandler,
 	}
 }
 
@@ -59,17 +61,23 @@ func getFilesBySuffix(dir string, suffix string) []string {
 // ResetAndInit 初始化数据库及表数据
 func (m *MockGORM) ResetAndInit() {
 	m.db = renew()
+	if m.resetHandler != nil {
+		m.resetHandler(m)
+	}
 	m.initModels()
 	m.initSQL()
 }
+
 // GetGormDB 获取Gorm实例
 func (m *MockGORM) GetGormDB() *gorm.DB {
 	return m.db
 }
+
 // GetSqlDB  获取*sql.DB实例
 func (m *MockGORM) GetSqlDB() *sql.DB {
 	return m.db.DB()
 }
+
 // RegisterModels 注册模型
 func (m *MockGORM) RegisterModels(models ...interface{}) {
 	if len(models) > 0 {
