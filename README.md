@@ -13,11 +13,15 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/jinzhu/gorm"
 	"github.com/sjqzhang/gmock"
+	"github.com/sjqzhang/gmock/mockdb"
 	"github.com/sjqzhang/gmock/mockdocker"
+	gormv2 "gorm.io/gorm"
 	"io/ioutil"
 	"net/http"
 	"time"
+	"xorm.io/xorm"
 )
 
 type User struct {
@@ -26,9 +30,7 @@ type User struct {
 	Age  int    `json:"age"`
 }
 
-
 func main() {
-	//
 	testMockGORM()
 	testMockGORMV2()
 	testMockXORM()
@@ -39,31 +41,64 @@ func main() {
 }
 
 func testMockGORM() {
-	mockdb := gmock.NewMockGORM("example")
+	var db *gorm.DB
+	mockdb := gmock.NewMockGORM("example", func(gorm *mockdb.MockGORM) {
+		db = gorm.GetGormDB()
+	})
 	mockdb.RegisterModels(&User{})
 	mockdb.ResetAndInit()
-	db := mockdb.GetGormDB()
+	mockdb.ResetAndInit()
+
 	var user User
 	err := db.Where("id=?", 1).Find(&user).Error
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(user)
+	if user.Id != 1 {
+		panic(fmt.Errorf("testMockGORM error"))
+	}
+
 
 }
+
+func testDBUtil() {
+	var db *gorm.DB
+	mockdb := gmock.NewMockGORM("example", func(gorm *mockdb.MockGORM) {
+		db = gorm.GetGormDB()
+	})
+	mockdb.RegisterModels(&User{})
+	mockdb.ResetAndInit()
+	mockdb.ResetAndInit()
+
+	util := gmock.NewDBUtil()
+
+	var user User
+
+	util.QueryObjectBySQL(db.DB(), &user, "select * from user")
+	if user.Id != 1 {
+		panic(fmt.Errorf("testDBUtil error"))
+	}
+
+}
+
 func testMockGORMV2() {
-	mockdb := gmock.NewMockGORMV2("example")
+	var db *gormv2.DB
+	mockdb := gmock.NewMockGORMV2("example", func(orm *mockdb.MockGORMV2) {
+		db = orm.GetGormDB()
+	})
 	//注册模型
 	mockdb.RegisterModels(&User{})
 	//初始化数据库及表数据
 	mockdb.ResetAndInit()
-	db := mockdb.GetGormDB()
+	//db := mockdb.GetGormDB()
 	var user User
 	err := db.Where("id=?", 1).Find(&user).Error
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(user)
+	if user.Id != 1 {
+		panic(fmt.Errorf("testMockGORMV2 error"))
+	}
 
 }
 
@@ -84,7 +119,7 @@ func testMockRedis() {
 	//client.Set(ctx, key, value, time.Second*10)
 	cmd := client.Get(ctx, key)
 	if cmd.Val() != value {
-		panic("redis")
+		panic("testMockRedis error")
 	}
 
 }
@@ -107,11 +142,16 @@ func testMockHttpServer() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(string(data))
+	if string(data)!="hello baidu" {
+		panic(fmt.Errorf("testMockHttpServer error"))
+	}
 }
 
 func testMockXORM() {
-	mockdb := gmock.NewMockXORM("example")
+	var engine *xorm.Engine
+	mockdb := gmock.NewMockXORM("example", func(orm *mockdb.MockXORM) {
+		engine = orm.GetXORMEngine()
+	})
 	mockdb.RegisterModels(&User{})
 	mockdb.ResetAndInit()
 	db := mockdb.GetXORMEngine()
@@ -120,7 +160,9 @@ func testMockXORM() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(user)
+	if user.Id != 1 {
+		panic(fmt.Errorf("testMockXORM error"))
+	}
 }
 
 func testMockDocker() {
@@ -137,7 +179,4 @@ func testMockDocker() {
 	fmt.Println("mysql start success")
 
 }
-
-
-
 ```
