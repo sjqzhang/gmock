@@ -50,12 +50,16 @@ func NewMockGORMV2(pathToSqlFileName string, resetHandler func(orm *MockGORMV2))
 			}
 			mock.util.RunMySQLServer("mock", i, false)
 			time.Sleep(time.Second)
-			db, err = gorm.Open(mysql.Open(fmt.Sprintf("root:root@tcp(127.0.0.1:%v)/mock?charset=utf8&parseTime=True&loc=Local",i)), &gorm.Config{NamingStrategy: ns})
+			mock.dsn= fmt.Sprintf("root:root@tcp(127.0.0.1:%v)/mock?charset=utf8&parseTime=True&loc=Local", i)
+			mock.dbType="mysql"
+			db, err = gorm.Open(mysql.Open(mock.dsn), &gorm.Config{NamingStrategy: ns})
 			break
 		}
 
 	} else {
-		db, err = gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{
+		mock.dbType = "sqlite3"
+		mock.dsn = "file::memory:?cache=shared"
+		db, err = gorm.Open(sqlite.Open(mock.dsn), &gorm.Config{
 			NamingStrategy: ns,
 		})
 	}
@@ -101,11 +105,15 @@ func (m *MockGORMV2) dropTables() {
 		m.db.Migrator().DropTable(model)
 	}
 }
-
-func (m *MockGORMV2) InitSchemas(sqlSchema string) {
-	m.schema=sqlSchema
+func (m *MockGORMV2) GetDSN() (dbType string, dsn string) {
+	dbType = m.dbType
+	dsn = m.dsn
+	return
 }
 
+func (m *MockGORMV2) InitSchemas(sqlSchema string) {
+	m.schema = sqlSchema
+}
 
 // GetSqlDB  获取*sql.DB实例
 func (m *MockGORMV2) GetSqlDB() *sql.DB {
@@ -144,8 +152,8 @@ func (m *MockGORMV2) initModels() {
 	}
 }
 func (m *MockGORMV2) initSQL() {
-	if m.schema!="" {
-		sqls:=m.parseMockSQL(m.schema)
+	if m.schema != "" {
+		sqls := m.parseMockSQL(m.schema)
 		for _, sql := range sqls {
 			err := m.db.Exec(sql).Error
 			if err != nil {

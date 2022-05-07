@@ -39,6 +39,7 @@ func testMockGORM() {
 	mock := gmock.NewMockGORM("example", func(gorm *mockdb.MockGORM) {
 		db = gorm.GetGormDB()
 	})
+	fmt.Println(mock.GetDSN())
 	//mock.RegisterModels(&User{})
 	mock.InitSchemas(`CREATE TABLE user (
                            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -97,7 +98,7 @@ func testMockGORMV2() {
 }
 
 func testMockRedis() {
-	server := gmock.NewMockRedisServer()
+	server := gmock.NewMockRedisServer(63790)
 	client := server.GetRedisClient()
 	ctx := context.Background()
 	key := "aa"

@@ -19,8 +19,8 @@ func NewMockGORMV2(pathToSqlFileName string, resetHandler func(orm *mockdb.MockG
 	return mockdb.NewMockGORMV2(pathToSqlFileName, resetHandler)
 }
 
-func NewMockRedisServer() *mockredis.MockRedisServer {
-	return mockredis.NewMockRedisServer()
+func NewMockRedisServer(port int) *mockredis.MockRedisServer {
+	return mockredis.NewMockRedisServer(port)
 }
 
 func NewMockXORM(pathToSqlFileName string, resetHandler func(orm *mockdb.MockXORM)) *mockdb.MockXORM {
