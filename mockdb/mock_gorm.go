@@ -5,40 +5,64 @@ import (
 	"fmt"
 	"github.com/jinzhu/gorm"
 	"github.com/mattn/go-sqlite3"
+	"github.com/sjqzhang/gmock/util"
 	"io/ioutil"
 	"log"
+	"net"
 	"os"
 	"path/filepath"
 	"reflect"
 	"regexp"
 	"strings"
+	"time"
 )
+
+var DBType string = "sqlite3"
 
 type MockGORM struct {
 	pathToSqlFileName string `json:"path_to_sql_file_name"`
 	db                *gorm.DB
+	dbType            string
+	dsn               string
+	util              *util.DBUtil
 	models            []interface{}
 	resetHandler      func(orm *MockGORM)
 }
 
 func NewMockGORM(pathToSqlFileName string, resetHandler func(orm *MockGORM)) *MockGORM {
-	db := renew()
-	return &MockGORM{
+	mock := MockGORM{
 		pathToSqlFileName: pathToSqlFileName,
-		db:                db,
 		models:            make([]interface{}, 0),
 		resetHandler:      resetHandler,
 	}
-}
-
-func renew() *gorm.DB {
 	var err error
-	db, err := gorm.Open("sqlite3", ":memory:")
+	var db *gorm.DB
+	mock.util = util.NewDBUtil()
+	if DBType == "mysql" {
+		for i := 63306; i < 63400; i++ {
+			_, e := net.Dial("tcp", fmt.Sprintf("127.0.0.1:%v", i))
+			if e == nil {
+				continue
+			}
+			mock.util.RunMySQLServer("mock", i, false)
+			time.Sleep(time.Second)
+			mock.dsn = fmt.Sprintf("root:root@tcp(127.0.0.1:%v)/mock?charset=utf8&parseTime=True&loc=Local", i)
+			mock.dbType = "mysql"
+			db, err = gorm.Open("mysql", mock.dsn)
+			break
+		}
+	} else {
+		mock.dbType = "sqlite3"
+		mock.dsn = ":memory:"
+		db, err = gorm.Open("sqlite3", ":memory:")
+	}
 	db.SingularTable(true)
 	if err != nil {
 		panic(err)
 	}
-	return db
+	mock.db = db
+	return &mock
+
 }
 
 func getFilesBySuffix(dir string, suffix string) []string {
@@ -60,12 +84,53 @@ func getFilesBySuffix(dir string, suffix string) []string {
 
 // ResetAndInit 初始化数据库及表数据
 func (m *MockGORM) ResetAndInit() {
-	m.db = renew()
+	//m.db = renew()
+	m.dropTables()
+	m.initModels()
+	m.initSQL()
 	if m.resetHandler != nil {
 		m.resetHandler(m)
 	}
-	m.initModels()
-	m.initSQL()
+}
+
+//func (m *MockGORM) GetTableNames() []string {
+//	s := "SELECT name FROM sqlite_master where type='table' order by name"
+//	rows, err := m.GetSqlDB().Query(s)
+//	var tableNames []string
+//	if err == nil {
+//		for rows.Next() {
+//			var name string
+//			err = rows.Scan(&name)
+//			if err == nil {
+//				tableNames = append(tableNames, name)
+//			}
+//		}
+//	}
+//	return tableNames
+//}
+
+func (m *MockGORM) dropTables() {
+	if DBType == "mysql" {
+		rows, err := m.db.Raw("show tables").Rows()
+		if err == nil {
+			for rows.Next() {
+				var name string
+				err = rows.Scan(&name)
+				if err == nil {
+					err = m.db.DropTable(name).Error
+					if err != nil {
+						log.Print(err)
+					}
+				}
+			}
+
+		}
+
+	} else {
+		for _, model := range m.models {
+			m.db.DropTableIfExists(model)
+		}
+	}
 }
 
 // GetGormDB 获取Gorm实例

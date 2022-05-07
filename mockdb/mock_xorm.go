@@ -4,12 +4,15 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/mattn/go-sqlite3"
+	"github.com/sjqzhang/gmock/util"
 	"io/ioutil"
 	"log"
+	"net"
 	"os"
 	"reflect"
 	"regexp"
 	"strings"
+	"time"
 	"xorm.io/xorm"
 )
 
@@ -18,29 +21,56 @@ type MockXORM struct {
 	engine            *xorm.Engine
 	//engine *xorm.Engine
 	models       []interface{}
+	util         *util.DBUtil
+	dbType       string
+	dsn          string
 	resetHandler func(orm *MockXORM)
 }
 
 func NewMockXORM(pathToSqlFileName string, resetHandler func(orm *MockXORM)) *MockXORM {
-	db := renewEngine()
-	return &MockXORM{
+	var db *xorm.Engine
+	var err error
+	mock := MockXORM{
 		pathToSqlFileName: pathToSqlFileName,
 		engine:            db,
 		models:            make([]interface{}, 0),
 		resetHandler:      resetHandler,
 	}
-}
-
-func renewEngine() *xorm.Engine {
-	var err error
-	var engine *xorm.Engine
-	engine, err = xorm.NewEngine("sqlite3", ":memory:")
-	//engine.SingularTable(true)
+	if DBType == "mysql" {
+		for i := 63306; i < 63400; i++ {
+			_, e := net.Dial("tcp", fmt.Sprintf("127.0.0.1:%v", i))
+			if e == nil {
+				continue
+			}
+			mock.util.RunMySQLServer("mock", i, false)
+			time.Sleep(time.Second)
+			mock.dsn = fmt.Sprintf("root:root@tcp(127.0.0.1:%v)/mock?charset=utf8&parseTime=True&loc=Local", i)
+			mock.dbType = "mysql"
+			db, err = xorm.NewEngine(mock.dbType, mock.dsn)
+			break
+		}
+	} else {
+		mock.dbType = "sqlite3"
+		mock.dsn = ":memory:"
+		db, err = xorm.NewEngine("sqlite3", ":memory:")
+	}
 	if err != nil {
 		panic(err)
 	}
-	return engine
+	mock.engine=db
+	return &mock
 }
+
+//func renewEngine() *xorm.Engine {
+//	var err error
+//	var engine *xorm.Engine
+//	engine, err = xorm.NewEngine("sqlite3", ":memory:")
+//	//engine.SingularTable(true)
+//	if err != nil {
+//		panic(err)
+//	}
+//	return engine
+//}
 
 //
 //func getFilesBySuffix(dir string, suffix string) []string {
@@ -62,12 +92,19 @@ func renewEngine() *xorm.Engine {
 
 // ResetAndInit 初始化数据库及表数据
 func (m *MockXORM) ResetAndInit() {
-	m.engine = renewEngine()
+	//m.engine = renewEngine()
+
+	m.initModels()
+	m.initSQL()
 	if m.resetHandler != nil {
 		m.resetHandler(m)
 	}
-	m.initModels()
-	m.initSQL()
+}
+
+func (m *MockXORM) dropTables() {
+
+	m.engine.DropTables(m.models)
+
 }
 
 //GetXORMEngine 获取 *xorm.Engine实例
