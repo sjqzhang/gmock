@@ -142,7 +142,6 @@ func (m *DBUtil) ParseSQLText(sqlText string) []string {
 	return sqls
 }
 
-
 func (u *DBUtil) ReadFile(filePath string) string {
 	if _, err := os.Stat(filePath); err != nil {
 		log.Print(err)
@@ -159,6 +158,15 @@ func (u *DBUtil) ReadFile(filePath string) string {
 	return string(data)
 }
 
+func (u *DBUtil) IntToPr(i int) *int {
+	i2 := i
+	return &i2
+}
+
+func (u *DBUtil) StrToPr(s string) *string {
+	s2 := s
+	return &s2
+}
 
 func (u *DBUtil) RunMySQLServer(dbName string, dbPort int, block bool) {
 	engine := sqle.NewDefault(
