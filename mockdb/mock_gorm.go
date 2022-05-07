@@ -24,6 +24,7 @@ type MockGORM struct {
 	db                *gorm.DB
 	dbType            string
 	dsn               string
+	schema            string  // just fix:github.com/jinzhu/gorm   "fix tables"
 	util              *util.DBUtil
 	models            []interface{}
 	resetHandler      func(orm *MockGORM)
@@ -85,8 +86,11 @@ func getFilesBySuffix(dir string, suffix string) []string {
 // ResetAndInit 初始化数据库及表数据
 func (m *MockGORM) ResetAndInit() {
 	//m.db = renew()
+
 	m.dropTables()
-	m.initModels()
+	if DBType != "mysql" {
+		m.initModels()
+	}
 	m.initSQL()
 	if m.resetHandler != nil {
 		m.resetHandler(m)
@@ -143,6 +147,11 @@ func (m *MockGORM) GetSqlDB() *sql.DB {
 	return m.db.DB()
 }
 
+// InitSchemas  为了兼容github.com/jinzhu/gorm mysql的bug 特殊处理的
+func (m *MockGORM) InitSchemas(sqlSchema string) {
+	m.schema=sqlSchema
+}
+
 // RegisterModels 注册模型
 func (m *MockGORM) RegisterModels(models ...interface{}) {
 	if len(models) > 0 {
@@ -171,6 +180,16 @@ func (m *MockGORM) initModels() {
 	}
 }
 func (m *MockGORM) initSQL() {
+	if m.schema!="" {
+		sqls:=m.parseMockSQL(m.schema)
+		for _, sql := range sqls {
+			err := m.db.Exec(sql).Error
+			if err != nil {
+				log.Print(sql)
+				panic(err)
+			}
+		}
+	}
 	for _, filePath := range getFilesBySuffix(m.pathToSqlFileName, "sql") {
 		sqlText := m.readMockSQl(filePath)
 		sqls := m.parseMockSQL(sqlText)
@@ -183,6 +202,7 @@ func (m *MockGORM) initSQL() {
 		}
 		log.Printf("sql file %v is loaded", filePath)
 	}
+
 }
 
 // ReadMockSQl read sql file to string

@@ -25,6 +25,7 @@ type MockXORM struct {
 	dbType       string
 	dsn          string
 	resetHandler func(orm *MockXORM)
+	schema       string
 }
 
 func NewMockXORM(pathToSqlFileName string, resetHandler func(orm *MockXORM)) *MockXORM {
@@ -57,7 +58,7 @@ func NewMockXORM(pathToSqlFileName string, resetHandler func(orm *MockXORM)) *Mo
 	if err != nil {
 		panic(err)
 	}
-	mock.engine=db
+	mock.engine = db
 	return &mock
 }
 
@@ -107,6 +108,10 @@ func (m *MockXORM) dropTables() {
 
 }
 
+func (m *MockXORM) InitSchemas(sqlSchema string) {
+	m.schema = sqlSchema
+}
+
 //GetXORMEngine 获取 *xorm.Engine实例
 func (m *MockXORM) GetXORMEngine() *xorm.Engine {
 	return m.engine
@@ -145,6 +150,16 @@ func (m *MockXORM) initModels() {
 	}
 }
 func (m *MockXORM) initSQL() {
+	if m.schema != "" {
+		sqls := m.parseMockSQL(m.schema)
+		for _, sql := range sqls {
+			_, err := m.engine.Exec(sql)
+			if err != nil {
+				log.Print(sql)
+				panic(err)
+			}
+		}
+	}
 	for _, filePath := range getFilesBySuffix(m.pathToSqlFileName, "sql") {
 		sqlText := m.readMockSQl(filePath)
 		sqls := m.parseMockSQL(sqlText)

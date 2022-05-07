@@ -26,6 +26,7 @@ type MockGORMV2 struct {
 	models            []interface{}
 	util              *util.DBUtil
 	resetHandler      func(resetHandler *MockGORMV2)
+	schema            string
 }
 
 func NewMockGORMV2(pathToSqlFileName string, resetHandler func(orm *MockGORMV2)) *MockGORMV2 {
@@ -101,6 +102,11 @@ func (m *MockGORMV2) dropTables() {
 	}
 }
 
+func (m *MockGORMV2) InitSchemas(sqlSchema string) {
+	m.schema=sqlSchema
+}
+
+
 // GetSqlDB  获取*sql.DB实例
 func (m *MockGORMV2) GetSqlDB() *sql.DB {
 	db, err := m.db.DB()
@@ -138,6 +144,16 @@ func (m *MockGORMV2) initModels() {
 	}
 }
 func (m *MockGORMV2) initSQL() {
+	if m.schema!="" {
+		sqls:=m.parseMockSQL(m.schema)
+		for _, sql := range sqls {
+			err := m.db.Exec(sql).Error
+			if err != nil {
+				log.Print(sql)
+				panic(err)
+			}
+		}
+	}
 	for _, filePath := range getFilesBySuffix(m.pathToSqlFileName, "sql") {
 		sqlText := m.readMockSQl(filePath)
 		sqls := m.parseMockSQL(sqlText)
