@@ -7,6 +7,7 @@ import (
 	"github.com/sjqzhang/gmock"
 	"github.com/sjqzhang/gmock/mockdb"
 	"github.com/sjqzhang/gmock/mockdocker"
+	_ "gorm.io/driver/mysql"
 	gormv2 "gorm.io/gorm"
 	"io/ioutil"
 	"net/http"
@@ -24,20 +25,23 @@ func main() {
 	testMockGORM()
 	testMockGORMV2()
 	testMockXORM()
-	testMockRedis()
-	testMockHttpServer()
-	testMockDocker()
+	//testMockRedis()
+	//testMockHttpServer()
+	//testMockDocker()
+
+	//testDBUtil()
 
 }
 
 func testMockGORM() {
 	var db *gorm.DB
-	mockdb := gmock.NewMockGORM("example", func(gorm *mockdb.MockGORM) {
+
+	mock := gmock.NewMockGORM("example", func(gorm *mockdb.MockGORM) {
 		db = gorm.GetGormDB()
 	})
-	mockdb.RegisterModels(&User{})
-	mockdb.ResetAndInit()
-	mockdb.ResetAndInit()
+	mock.RegisterModels(&User{})
+	mock.ResetAndInit()
+	mock.ResetAndInit()
 
 	var user User
 	err := db.Where("id=?", 1).Find(&user).Error
@@ -52,35 +56,31 @@ func testMockGORM() {
 }
 
 func testDBUtil() {
-	var db *gorm.DB
-	mockdb := gmock.NewMockGORM("example", func(gorm *mockdb.MockGORM) {
-		db = gorm.GetGormDB()
-	})
-	mockdb.RegisterModels(&User{})
-	mockdb.ResetAndInit()
-	mockdb.ResetAndInit()
-
-	util := gmock.NewDBUtil()
-
-	var user User
-
-	util.QueryObjectBySQL(db.DB(), &user, "select * from user")
-	if user.Id != 1 {
-		panic(fmt.Errorf("testDBUtil error"))
+	util:=gmock.NewDBUtil()
+	util.RunMySQLServer("test",33333,false)
+	db,err:=gorm.Open("mysql","user:pass@tcp(127.0.0.1:33333)/test?charset=utf8mb4&parseTime=True&loc=Local")
+	if err!=nil {
+		panic(err)
 	}
-
+	sqlText :=util.ReadFile("./example/ddl.txt")
+	for _,s:=range util.ParseSQLText(sqlText) {
+		fmt.Println(db.Exec(s))
+	}
+	fmt.Println(util.QueryListBySQL(db.DB(),"select * from project"))
 }
 
 func testMockGORMV2() {
+	mockdb.DBType="mysql"
 	var db *gormv2.DB
-	mockdb := gmock.NewMockGORMV2("example", func(orm *mockdb.MockGORMV2) {
+	mock := gmock.NewMockGORMV2("example", func(orm *mockdb.MockGORMV2) {
 		db = orm.GetGormDB()
 	})
 	//注册模型
-	mockdb.RegisterModels(&User{})
+	mock.RegisterModels(&User{})
 	//初始化数据库及表数据
-	mockdb.ResetAndInit()
-	//db := mockdb.GetGormDB()
+	mock.ResetAndInit()
+	mock.ResetAndInit()
+	//db := mock.GetGormDB()
 	var user User
 	err := db.Where("id=?", 1).Find(&user).Error
 	if err != nil {
@@ -89,6 +89,8 @@ func testMockGORMV2() {
 	if user.Id != 1 {
 		panic(fmt.Errorf("testMockGORMV2 error"))
 	}
+
+
 
 }
 
@@ -139,12 +141,13 @@ func testMockHttpServer() {
 
 func testMockXORM() {
 	var engine *xorm.Engine
-	mockdb := gmock.NewMockXORM("example", func(orm *mockdb.MockXORM) {
+	mockdb.DBType="mysql"
+	mock := gmock.NewMockXORM("example", func(orm *mockdb.MockXORM) {
 		engine = orm.GetXORMEngine()
 	})
-	mockdb.RegisterModels(&User{})
-	mockdb.ResetAndInit()
-	db := mockdb.GetXORMEngine()
+	mock.RegisterModels(&User{})
+	mock.ResetAndInit()
+	db := mock.GetXORMEngine()
 	var user User
 	_, err := db.Where("id=?", 1).Get(&user)
 	if err != nil {

@@ -4,7 +4,19 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
+	sqle "github.com/dolthub/go-mysql-server"
+	"github.com/dolthub/go-mysql-server/auth"
+	"github.com/dolthub/go-mysql-server/memory"
+	"github.com/dolthub/go-mysql-server/server"
+	sqlm "github.com/dolthub/go-mysql-server/sql"
+	"github.com/dolthub/go-mysql-server/sql/information_schema"
+	"io/ioutil"
+	"log"
+	"os"
 	"reflect"
+	"regexp"
+	"strings"
 )
 
 type DBUtil struct {
@@ -106,4 +118,66 @@ func (u *DBUtil) QueryObjectBySQL(db *sql.DB, obj interface{}, sqlStr string, ar
 		errors.New("obj must be a pointer to struct or slice")
 	}
 	return nil
+}
+
+func (u *DBUtil) ExecSQL(db *sql.DB, sqlStr string, args ...interface{}) (sql.Result, error) {
+	return db.Exec(sqlStr, args...)
+}
+
+func (m *DBUtil) ParseSQLText(sqlText string) []string {
+	reg := regexp.MustCompile(`[\r\n]+`)
+	linses := reg.Split(sqlText, -1)
+	var tmp []string
+	var sqls []string
+	for _, line := range linses {
+		tmp = append(tmp, line)
+		if strings.HasSuffix(strings.TrimSpace(line), ";") {
+			if len(tmp) > 0 {
+				sqls = append(sqls, strings.Join(tmp, "\n"))
+			}
+			tmp = []string{}
+		}
+
+	}
+	return sqls
+}
+
+
+func (u *DBUtil) ReadFile(filePath string) string {
+	if _, err := os.Stat(filePath); err != nil {
+		log.Print(err)
+		return ""
+	}
+	fp, err := os.Open(filePath)
+	if err != nil {
+		panic(err)
+	}
+	data, err := ioutil.ReadAll(fp)
+	if err != nil {
+		panic(err)
+	}
+	return string(data)
+}
+
+
+func (u *DBUtil) RunMySQLServer(dbName string, dbPort int, block bool) {
+	engine := sqle.NewDefault(
+		sqlm.NewDatabaseProvider(
+			memory.NewDatabase(dbName),
+			information_schema.NewInformationSchemaDatabase(),
+		))
+	config := server.Config{
+		Protocol: "tcp",
+		Address:  fmt.Sprintf("0.0.0.0:%v", dbPort),
+		Auth:     &auth.None{},
+	}
+	s, err := server.NewDefaultServer(config, engine)
+	if err != nil {
+		panic(err)
+	}
+	if block {
+		s.Start()
+	} else {
+		go s.Start()
+	}
 }
