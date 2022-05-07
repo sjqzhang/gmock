@@ -111,6 +111,11 @@ func (m *MockGORMV2) GetDSN() (dbType string, dsn string) {
 	return
 }
 
+
+func (m *MockGORMV2) GetDBUtil() *util.DBUtil {
+	return m.util
+}
+
 func (m *MockGORMV2) InitSchemas(sqlSchema string) {
 	m.schema = sqlSchema
 }
