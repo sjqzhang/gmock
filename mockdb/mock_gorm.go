@@ -158,6 +158,10 @@ func (m *MockGORM) GetDSN() (dbType string, dsn string) {
 	return
 }
 
+func (m *MockGORM) GetDBUtil() *util.DBUtil {
+	return m.util
+}
+
 // RegisterModels 注册模型
 func (m *MockGORM) RegisterModels(models ...interface{}) {
 	if len(models) > 0 {
