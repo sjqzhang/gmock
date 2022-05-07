@@ -122,6 +122,12 @@ func (m *MockXORM) GetSqlDB() *sql.DB {
 	return m.engine.DB().DB
 }
 
+func (m *MockXORM) GetDSN() (dbType string, dsn string) {
+	dbType = m.dbType
+	dsn = m.dsn
+	return
+}
+
 // RegisterModels 注册模型
 func (m *MockXORM) RegisterModels(models ...interface{}) {
 	if len(models) > 0 {

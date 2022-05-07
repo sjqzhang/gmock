@@ -12,10 +12,10 @@ type MockRedisServer struct {
 	redisServer *miniredis.Miniredis
 }
 
-func NewMockRedisServer() *MockRedisServer {
+func NewMockRedisServer(port int) *MockRedisServer {
 
 	svc := MockRedisServer{
-		port:        23436,
+		port:        port,
 		redisServer: miniredis.NewMiniRedis(),
 	}
 	err := svc.redisServer.Start()

@@ -24,7 +24,7 @@ type MockGORM struct {
 	db                *gorm.DB
 	dbType            string
 	dsn               string
-	schema            string  // just fix:github.com/jinzhu/gorm   "fix tables"
+	schema            string // just fix:github.com/jinzhu/gorm   "fix tables"
 	util              *util.DBUtil
 	models            []interface{}
 	resetHandler      func(orm *MockGORM)
@@ -88,7 +88,7 @@ func (m *MockGORM) ResetAndInit() {
 	//m.db = renew()
 
 	m.dropTables()
-	if DBType != "mysql" {
+	if m.dbType != "mysql" {
 		m.initModels()
 	}
 	m.initSQL()
@@ -114,7 +114,7 @@ func (m *MockGORM) ResetAndInit() {
 //}
 
 func (m *MockGORM) dropTables() {
-	if DBType == "mysql" {
+	if m.dbType == "mysql" {
 		rows, err := m.db.Raw("show tables").Rows()
 		if err == nil {
 			for rows.Next() {
@@ -149,7 +149,13 @@ func (m *MockGORM) GetSqlDB() *sql.DB {
 
 // InitSchemas  为了兼容github.com/jinzhu/gorm mysql的bug 特殊处理的
 func (m *MockGORM) InitSchemas(sqlSchema string) {
-	m.schema=sqlSchema
+	m.schema = sqlSchema
+}
+
+func (m *MockGORM) GetDSN() (dbType string, dsn string) {
+	dbType = m.dbType
+	dsn = m.dsn
+	return
 }
 
 // RegisterModels 注册模型
@@ -180,8 +186,8 @@ func (m *MockGORM) initModels() {
 	}
 }
 func (m *MockGORM) initSQL() {
-	if m.schema!="" {
-		sqls:=m.parseMockSQL(m.schema)
+	if m.schema != "" {
+		sqls := m.parseMockSQL(m.schema)
 		for _, sql := range sqls {
 			err := m.db.Exec(sql).Error
 			if err != nil {
