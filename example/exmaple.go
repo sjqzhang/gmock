@@ -25,22 +25,27 @@ func main() {
 	testMockGORM()
 	testMockGORMV2()
 	testMockXORM()
-	//testMockRedis()
-	//testMockHttpServer()
-	//testMockDocker()
+	testMockRedis()
+	testMockHttpServer()
+	testMockDocker()
 
-	//testDBUtil()
+	testDBUtil()
 
 }
 
 func testMockGORM() {
 	var db *gorm.DB
-
+	mockdb.DBType = "mysql"
 	mock := gmock.NewMockGORM("example", func(gorm *mockdb.MockGORM) {
 		db = gorm.GetGormDB()
 	})
-	mock.RegisterModels(&User{})
-	mock.ResetAndInit()
+	//mock.RegisterModels(&User{})
+	mock.InitSchemas(`CREATE TABLE user (
+                           id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+                           age int(3) DEFAULT NULL,
+                           name varchar(255) DEFAULT NULL COMMENT '名称',
+                           PRIMARY KEY (id)
+) ENGINE=InnoDB ;`)
 	mock.ResetAndInit()
 
 	var user User
@@ -52,25 +57,24 @@ func testMockGORM() {
 		panic(fmt.Errorf("testMockGORM error"))
 	}
 
-
 }
 
 func testDBUtil() {
-	util:=gmock.NewDBUtil()
-	util.RunMySQLServer("test",33333,false)
-	db,err:=gorm.Open("mysql","user:pass@tcp(127.0.0.1:33333)/test?charset=utf8mb4&parseTime=True&loc=Local")
-	if err!=nil {
+	util := gmock.NewDBUtil()
+	util.RunMySQLServer("test", 33333, false)
+	db, err := gorm.Open("mysql", "user:pass@tcp(127.0.0.1:33333)/test?charset=utf8mb4&parseTime=True&loc=Local")
+	if err != nil {
 		panic(err)
 	}
-	sqlText :=util.ReadFile("./example/ddl.txt")
-	for _,s:=range util.ParseSQLText(sqlText) {
+	sqlText := util.ReadFile("./example/ddl.txt")
+	for _, s := range util.ParseSQLText(sqlText) {
 		fmt.Println(db.Exec(s))
 	}
-	fmt.Println(util.QueryListBySQL(db.DB(),"select * from project"))
+	fmt.Println(util.QueryListBySQL(db.DB(), "select * from project"))
 }
 
 func testMockGORMV2() {
-	mockdb.DBType="mysql"
+	mockdb.DBType = "mysql"
 	var db *gormv2.DB
 	mock := gmock.NewMockGORMV2("example", func(orm *mockdb.MockGORMV2) {
 		db = orm.GetGormDB()
@@ -89,8 +93,6 @@ func testMockGORMV2() {
 	if user.Id != 1 {
 		panic(fmt.Errorf("testMockGORMV2 error"))
 	}
-
-
 
 }
 
@@ -134,18 +136,19 @@ func testMockHttpServer() {
 	if err != nil {
 		panic(err)
 	}
-	if string(data)!="hello baidu" {
+	if string(data) != "hello baidu" {
 		panic(fmt.Errorf("testMockHttpServer error"))
 	}
 }
 
 func testMockXORM() {
 	var engine *xorm.Engine
-	mockdb.DBType="mysql"
+	mockdb.DBType = "mysql"
 	mock := gmock.NewMockXORM("example", func(orm *mockdb.MockXORM) {
 		engine = orm.GetXORMEngine()
 	})
 	mock.RegisterModels(&User{})
+
 	mock.ResetAndInit()
 	db := mock.GetXORMEngine()
 	var user User
