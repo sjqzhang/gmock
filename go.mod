@@ -11,6 +11,7 @@ require (
 	github.com/dolthub/go-mysql-server v0.11.0
 	github.com/fsouza/go-dockerclient v1.7.10
 	github.com/go-redis/redis/v8 v8.11.5
+	github.com/go-sql-driver/mysql v1.6.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/gomodule/redigo v1.8.8

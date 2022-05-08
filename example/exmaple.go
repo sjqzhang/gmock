@@ -28,7 +28,6 @@ func main() {
 	testMockRedis()
 	testMockHttpServer()
 	testMockDocker()
-
 	testDBUtil()
 
 }
