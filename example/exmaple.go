@@ -165,7 +165,7 @@ func testMockDocker() {
 	mock := mockdocker.NewMockDockerService()
 	defer mock.Destroy()
 	err := mock.InitContainerWithCmd(func(cmd *string) {
-		//  注意：容器必须后台运行，否则会挂起，程序不会继续执行
+		//  注意：容器必须后台运行，否则会挂起，程序不会继续执行,所以要保证你的容器后台运行不退出
 		*cmd = "docker run --name some-mysql  -p 3308:3306 -e MYSQL_ROOT_PASSWORD=root -d mysql:5.7"
 	})
 	fmt.Println(err)
