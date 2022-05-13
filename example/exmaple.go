@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"gitee.com/chunanyong/zorm"
 	"github.com/jinzhu/gorm"
 	"github.com/sjqzhang/gmock"
 	"github.com/sjqzhang/gmock/mockdb"
@@ -25,10 +26,43 @@ func main() {
 	testMockGORM()
 	testMockGORMV2()
 	testMockXORM()
+	testMockZORM()
 	testMockRedis()
 	testMockHttpServer()
 	testMockDocker()
 	testDBUtil()
+
+}
+
+func testMockZORM() {
+	//var db *zorm.DBDao
+	mockdb.DBType = "mysql"
+	mock := mockdb.NewMockZORM("example", nil)
+	fmt.Println(mock.GetDSN())
+	//mock.RegisterModels(&User{})
+	//db=mock.GetGormDB()
+    //a:=mock.GetSqlDB()
+	//fmt.Println(a)
+	//return
+
+	mock.InitSchemas(`CREATE TABLE user (
+                           id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+                           age int(3) DEFAULT NULL,
+                           name varchar(255) DEFAULT NULL COMMENT '名称',
+                           PRIMARY KEY (id)
+) ENGINE=InnoDB ;`)
+	mock.ResetAndInit()
+
+	var user User
+
+	finder:=zorm.NewSelectFinder("user").Append("where id=?",1)
+	_,err := zorm.QueryRow(context.Background(),finder,&user)
+	if err != nil {
+		panic(err)
+	}
+	if user.Id != 1 {
+		panic(fmt.Errorf("testMockZORM error"))
+	}
 
 }
 
