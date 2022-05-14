@@ -137,7 +137,7 @@ func (m *MockZORM) GetSqlDB() *sql.DB {
 	rs:=reflect.ValueOf( m.ctx.Value(ctxKey))
 	rs2 := reflect.New(rs.Type()).Elem()
 	rs2.Set(rs)
-	rf:= rs2.Elem().Field(1)
+	rf:= rs2.Elem().FieldByName("dataSource")
 	v := reflect.NewAt(rf.Type(), unsafe.Pointer(rf.UnsafeAddr())).Elem().Elem().FieldByName("DB")
 	return v.Interface().(*sql.DB)
 
