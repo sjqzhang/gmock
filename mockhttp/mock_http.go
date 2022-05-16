@@ -114,7 +114,10 @@ func (m *httpHandler) getRequest(rr *http.Request) reqrsp {
 }
 
 func (m *httpHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
-	log.Println( fmt.Sprintf("Method:'%v'  URL:%v" , req.Method,req.URL))
+	var body string
+	defer func() {
+		log.Println( fmt.Sprintf("Method:'%v'  URL:%v Body:%v" , req.Method,req.URL,body))
+	}()
 	key := fmt.Sprintf("#%v_#%v_#%v", req.Host, strings.ToUpper(req.Method), req.URL.Path)
 	if rsp, ok := m.mockHttpServer.reqMap[key]; ok {
 		if rsp.Headers != nil {
@@ -124,6 +127,7 @@ func (m *httpHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 		}
 		resp.WriteHeader(rsp.Status)
 		resp.Write([]byte(rsp.Body))
+		body=rsp.Body
 		return
 	}
 	//uri, err := url.Parse(fmt.Sprintf("http://127.0.0.1:%v", m.mockHttpServer.fakeHttpPort))
@@ -138,6 +142,7 @@ func (m *httpHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 			if r.Request.Endpoint != "" {
 				resp.WriteHeader(r.Response.Status)
 				resp.Write([]byte(r.Response.Body))
+				body=r.Response.Body
 				return
 			}
 		}
