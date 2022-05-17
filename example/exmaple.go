@@ -8,6 +8,7 @@ import (
 	"github.com/sjqzhang/gmock"
 	"github.com/sjqzhang/gmock/mockdb"
 	"github.com/sjqzhang/gmock/mockdocker"
+	"github.com/sjqzhang/gmock/mockhttp"
 	_ "gorm.io/driver/mysql"
 	gormv2 "gorm.io/gorm"
 	"io/ioutil"
@@ -155,13 +156,15 @@ func testMockRedis() {
 func testMockHttpServer() {
 	// 只支持 http 不支持 https
 	server := gmock.NewMockHttpServer("./", []string{"www.baidu.com", "www.jenkins.org"})
-	server.InitMockHttpServer()
-	//server.SetReqRspHandler(func(req *mockhttp.Request, rsp *mockhttp.Response) {
-	//	req.Method = "GET"
-	//	req.Endpoint = "/HelloWorld"
-	//	req.Host = "www.baidu.com"
-	//	rsp.Body = "xxxxxxxxx bbbb"
-	//})
+	closeFunc:=server.InitMockHttpServer()
+	defer closeFunc()
+
+	server.SetReqRspHandler(func(req *mockhttp.Request, rsp *mockhttp.Response) {
+		req.Method = "GET"
+		req.Endpoint = "/hello/xxx"
+		req.Host = "www.baidu.com"
+		rsp.Body = "hello baidu"
+	})
 	resp, err := http.Get("http://www.baidu.com/hello/xxx")
 	if err != nil {
 		panic(err)
