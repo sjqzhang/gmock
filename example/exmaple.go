@@ -24,14 +24,14 @@ type User struct {
 }
 
 func main() {
-	testMockGORM()
-	testMockGORMV2()
-	testMockXORM()
-	testMockZORM()
-	testMockRedis()
+	//testMockGORM()
+	//testMockGORMV2()
+	//testMockXORM()
+	//testMockZORM()
+	//testMockRedis()
 	testMockHttpServer()
-	testMockDocker()
-	testDBUtil()
+	//testMockDocker()
+	//testDBUtil()
 
 }
 
@@ -155,26 +155,28 @@ func testMockRedis() {
 
 func testMockHttpServer() {
 	// 只支持 http 不支持 https
-	server := gmock.NewMockHttpServer("./", []string{"www.baidu.com", "www.jenkins.org"})
-	closeFunc:=server.InitMockHttpServer()
-	defer closeFunc()
+	for i:=0;i<10;i++ {
+		server := gmock.NewMockHttpServer("./", []string{"www.baidu.com", "www.jenkins.org"})
+		closeFunc := server.InitMockHttpServer()
 
-	server.SetReqRspHandler(func(req *mockhttp.Request, rsp *mockhttp.Response) {
-		req.Method = "GET"
-		req.Endpoint = "/hello/xxx"
-		req.Host = "www.baidu.com"
-		rsp.Body = "hello baidu"
-	})
-	resp, err := http.Get("http://www.baidu.com/hello/xxx")
-	if err != nil {
-		panic(err)
-	}
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		panic(err)
-	}
-	if string(data) != "hello baidu" {
-		panic(fmt.Errorf("testMockHttpServer error"))
+		server.SetReqRspHandler(func(req *mockhttp.Request, rsp *mockhttp.Response) {
+			req.Method = "GET"
+			req.Endpoint = "/hello/xxx"
+			req.Host = "www.baidu.com"
+			rsp.Body = "hello baidu"
+		})
+		resp, err := http.Get("http://www.baidu.com/hello/xxx")
+		if err != nil {
+			panic(err)
+		}
+		data, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			panic(err)
+		}
+		if string(data) != "hello baidu" {
+			panic(fmt.Errorf("testMockHttpServer error"))
+		}
+		closeFunc()
 	}
 }
 
