@@ -1,6 +1,7 @@
 package mockhttp
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -24,6 +25,7 @@ type MockHttpServer struct {
 	reqMap          map[string]Response
 	lock            sync.Mutex
 	mockReqRsp      []reqrsp
+	closeFunc       func()
 	once            sync.Once
 }
 
@@ -81,6 +83,7 @@ func NewMockHttpServer(mockJSONDir string, allowProxyHosts []string) *MockHttpSe
 		reqMap:          make(map[string]Response),
 		lock:            sync.Mutex{},
 		mockReqRsp:      rs,
+		closeFunc:       nil,
 		once:            sync.Once{},
 	}
 	hander := &httpHandler{
@@ -116,7 +119,7 @@ func (m *httpHandler) getRequest(rr *http.Request) reqrsp {
 func (m *httpHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	var body string
 	defer func() {
-		log.Println( fmt.Sprintf("Method:'%v'  URL:%v Body:%v" , req.Method,req.URL,body))
+		log.Println(fmt.Sprintf("Method:'%v'  URL:%v Body:%v", req.Method, req.URL, body))
 	}()
 	key := fmt.Sprintf("#%v_#%v_#%v", req.Host, strings.ToUpper(req.Method), req.URL.Path)
 	if rsp, ok := m.mockHttpServer.reqMap[key]; ok {
@@ -127,7 +130,7 @@ func (m *httpHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 		}
 		resp.WriteHeader(rsp.Status)
 		resp.Write([]byte(rsp.Body))
-		body=rsp.Body
+		body = rsp.Body
 		return
 	}
 	//uri, err := url.Parse(fmt.Sprintf("http://127.0.0.1:%v", m.mockHttpServer.fakeHttpPort))
@@ -142,7 +145,7 @@ func (m *httpHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 			if r.Request.Endpoint != "" {
 				resp.WriteHeader(r.Response.Status)
 				resp.Write([]byte(r.Response.Body))
-				body=r.Response.Body
+				body = r.Response.Body
 				return
 			}
 		}
@@ -171,30 +174,56 @@ func (m *MockHttpServer) DisableMockHttp() {
 	os.Setenv("HTTPS_PROXY", "")
 }
 
-func (m *MockHttpServer) start() {
-	m.once.Do(func() {
-		var handler httpHandler
-		handler.mockHttpServer = m
-		handler.allowProxyHosts = m.allowProxyHosts
-		mux := http.NewServeMux()
-		mux.HandleFunc("/", handler.ServeHTTP)
-		go func() {
-			err := http.ListenAndServe(fmt.Sprintf("0.0.0.0:%d", m.httpProxyPort), mux)
-			if err != nil {
-				panic(err)
+func (m *MockHttpServer) IsAlive() bool {
+	_, err := net.Dial("tcp", fmt.Sprintf("127.0.0.1:%v", m.httpProxyPort))
+	if err == nil {
+		return true
+	}
+	return false
+}
+
+func (m *MockHttpServer) Stop() {
+	if m.closeFunc != nil  {
+		m.closeFunc()
+	}
+}
+
+func (m *MockHttpServer) Start() (closeFunc func()) {
+	var handler httpHandler
+	handler.mockHttpServer = m
+	handler.allowProxyHosts = m.allowProxyHosts
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", handler.ServeHTTP)
+	server := &http.Server{Addr: fmt.Sprintf("0.0.0.0:%d", m.httpProxyPort), Handler: mux}
+	go func() {
+		// recover the http server
+		defer func() {
+			if err := recover(); err != nil {
+				log.Println(err)
 			}
 		}()
-		i := 0
-		for {
-			_, err := net.Dial("tcp", fmt.Sprintf("127.0.0.1:%v", m.httpProxyPort))
-			if err == nil || i > 10 {
-				break
-			}
-			i++
-			time.Sleep(time.Second)
+		err := server.ListenAndServe()
+		if err != nil {
+			panic(err)
 		}
-	})
-
+	}()
+	i := 0
+	for {
+		time.Sleep(time.Second)
+		if m.IsAlive() {
+			break
+		}
+		i++
+		if i > 10 {
+			break
+		}
+	}
+	m.closeFunc = func() {
+		if err := server.Shutdown(context.Background()); err != nil {
+			fmt.Printf("HTTP server Shutdown: %v", err)
+		}
+	}
+	return m.closeFunc
 }
 
 func (m *MockHttpServer) SetCustomHttpHandler(handler http.Handler) {
@@ -223,7 +252,7 @@ func (m *MockHttpServer) newReqToResponse() (Request, Response) {
 	return req, rsp
 }
 
-func (m *MockHttpServer) InitMockHttpServer() *MockHttpServer {
+func (m *MockHttpServer) InitMockHttpServer() func() {
 	os.Setenv("HTTP_PROXY", fmt.Sprintf("http://127.0.0.1:%v", m.httpProxyPort))
 	os.Setenv("HTTPS_PROXY", fmt.Sprintf("http://127.0.0.1:%v", m.httpProxyPort))
 
@@ -240,9 +269,5 @@ func (m *MockHttpServer) InitMockHttpServer() *MockHttpServer {
 	//	panic(err)
 	//}
 	//httpServer.Run()
-
-	m.start()
-
-	return m
-
+	return m.Start()
 }
