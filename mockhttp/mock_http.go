@@ -183,7 +183,7 @@ func (m *MockHttpServer) IsAlive() bool {
 }
 
 func (m *MockHttpServer) Stop() {
-	if m.closeFunc != nil  {
+	if m.closeFunc != nil {
 		m.closeFunc()
 	}
 }
@@ -269,5 +269,9 @@ func (m *MockHttpServer) InitMockHttpServer() func() {
 	//	panic(err)
 	//}
 	//httpServer.Run()
+	if m.IsAlive() {
+		log.Println(fmt.Sprintf("server is running. listen on:%v", m.httpProxyPort))
+		return m.closeFunc
+	}
 	return m.Start()
 }
