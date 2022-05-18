@@ -105,11 +105,11 @@ func initReqRsp(mockJSONDir string) ([]reqrsp, error) {
 	return rs, nil
 }
 
-func NewMockHttpServer(mockJSONDir string, allowProxyHosts []string) *MockHttpServer {
+func NewMockHttpServer(httpServerPort int, mockJSONDir string, allowProxyHosts []string) *MockHttpServer {
 	rs, _ := initReqRsp(mockJSONDir)
 	server := &MockHttpServer{
 		fakeHttpPort:    23433,
-		httpProxyPort:   23435,
+		httpProxyPort:   httpServerPort,
 		allowProxyHosts: allowProxyHosts,
 		mockApiDir:      mockJSONDir,
 		reqMap:          make(map[string]Response),

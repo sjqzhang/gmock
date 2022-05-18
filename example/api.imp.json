@@ -17,7 +17,7 @@
       "endpoint": "/.*"
     },
     "response": {
-      "status": 200,
+      "status": 500,
       "body": "hello baidu"
     }
   }

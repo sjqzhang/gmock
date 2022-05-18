@@ -7,8 +7,8 @@ import (
 	"github.com/sjqzhang/gmock/util"
 )
 
-func NewMockHttpServer(mockJSONDir string, allowProxyHosts []string) *mockhttp.MockHttpServer {
-	return mockhttp.NewMockHttpServer(mockJSONDir, allowProxyHosts)
+func NewMockHttpServer(httpServerPort int, mockJSONDir string, allowProxyHosts []string) *mockhttp.MockHttpServer {
+	return mockhttp.NewMockHttpServer(httpServerPort,mockJSONDir, allowProxyHosts)
 }
 
 func NewMockGORM(pathToSqlFileName string, resetHandler func(orm *mockdb.MockGORM)) *mockdb.MockGORM {
