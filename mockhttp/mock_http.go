@@ -34,6 +34,7 @@ type reqrsp struct {
 	Request  Request  `json:"request"`
 	Response Response `json:"response"`
 }
+
 var consoleLog = log.New(os.Stdout, "[gmock.mockhttp] ", log.LstdFlags)
 
 // Request represent the structure of real Request
@@ -47,10 +48,11 @@ type Request struct {
 
 // Response represent the structure of real Response
 type Response struct {
-	Status  int                `json:"status"`
-	Body    string             `json:"body"`
-	Headers *map[string]string `json:"headers"`
-	Handler func(resp http.ResponseWriter, req *http.Request)
+	Status           int                `json:"status"`
+	Body             string             `json:"body"`
+	Headers          *map[string]string `json:"headers"`
+	DelayMillisecond int                `json:"delayMillisecond"`
+	Handler          func(resp http.ResponseWriter, req *http.Request)
 }
 
 type httpHandler struct {
@@ -151,9 +153,9 @@ func (m *httpHandler) getRequest(rr *http.Request) reqrsp {
 
 func (m *httpHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	var body string
-	bodyPrt:= &body
+	bodyPrt := &body
 	var respStatus int
-	respStatusPtr:=&respStatus
+	respStatusPtr := &respStatus
 	buff := newBuffer()
 	defer func() {
 		data, err := ioutil.ReadAll(req.Body)
@@ -161,7 +163,7 @@ func (m *httpHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 			consoleLog.Println(err)
 		}
 		consoleLog.Println(fmt.Sprintf("\033[32m <Request> Method:'%v'  RequestURI:%v Request Body:%v \u001B[0m", req.Method, req.RequestURI, string(data)))
-		consoleLog.Println(fmt.Sprintf("\u001B[33m <Response> Method:'%v' Status:%v  RequestURI:%v Response Body:%v \u001B[0m", req.Method, *respStatusPtr,  req.URL, *bodyPrt))
+		consoleLog.Println(fmt.Sprintf("\u001B[33m <Response> Method:'%v' Status:%v  RequestURI:%v Response Body:%v \u001B[0m", req.Method, *respStatusPtr, req.URL, *bodyPrt))
 	}()
 	key := fmt.Sprintf("#%v_#%v_#%v", req.Host, strings.ToUpper(req.Method), req.URL.Path)
 	if rsp, ok := m.mockHttpServer.reqMap[key]; ok {
@@ -175,13 +177,19 @@ func (m *httpHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 			rsp.Handler(buff, req)
 			resp.Write([]byte(buff.buf.String()))
 			body = buff.buf.String()
-			respStatus=rsp.Status
+			respStatus = rsp.Status
+			if rsp.DelayMillisecond > 0 {
+				time.Sleep(time.Microsecond * time.Duration(rsp.DelayMillisecond))
+			}
 			return
 		}
 		resp.WriteHeader(rsp.Status)
 		resp.Write([]byte(rsp.Body))
 		body = rsp.Body
-		respStatus=rsp.Status
+		respStatus = rsp.Status
+		if r.Response.DelayMillisecond > 0 {
+			time.Sleep(time.Microsecond * time.Duration(rsp.DelayMillisecond))
+		}
 		return
 	}
 	//uri, err := url.Parse(fmt.Sprintf("http://127.0.0.1:%v", m.mockHttpServer.fakeHttpPort))
@@ -198,13 +206,19 @@ func (m *httpHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 					r.Response.Handler(buff, req)
 					resp.Write([]byte(buff.buf.String()))
 					body = buff.buf.String()
-					respStatus=r.Response.Status
+					respStatus = r.Response.Status
+					if r.Response.DelayMillisecond > 0 {
+						time.Sleep(time.Microsecond * time.Duration(r.Response.DelayMillisecond))
+					}
 					return
 				}
 				resp.WriteHeader(r.Response.Status)
 				resp.Write([]byte(r.Response.Body))
 				body = r.Response.Body
-				respStatus=r.Response.Status
+				respStatus = r.Response.Status
+				if r.Response.DelayMillisecond > 0 {
+					time.Sleep(time.Microsecond * time.Duration(r.Response.DelayMillisecond))
+				}
 				return
 			}
 		}
