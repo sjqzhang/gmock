@@ -187,7 +187,7 @@ func (m *httpHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 		resp.Write([]byte(rsp.Body))
 		body = rsp.Body
 		respStatus = rsp.Status
-		if r.Response.DelayMillisecond > 0 {
+		if rsp.DelayMillisecond > 0 {
 			time.Sleep(time.Microsecond * time.Duration(rsp.DelayMillisecond))
 		}
 		return
