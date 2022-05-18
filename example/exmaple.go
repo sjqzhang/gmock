@@ -155,7 +155,7 @@ func testMockRedis() {
 func testMockHttpServer() {
 	// 只支持 http 不支持 https
 	for i:=0;i<10;i++ {
-		server := gmock.NewMockHttpServer("./example", []string{"www.baidu.com", "www.jenkins.org"})
+		server := gmock.NewMockHttpServer(23435,"./example", []string{"www.baidu.com", "www.jenkins.org"})
 		closeFunc := server.InitMockHttpServer()
 
 		//server.SetReqRspHandler(func(req *mockhttp.Request, rsp *mockhttp.Response) {
