@@ -7,7 +7,6 @@ import (
 	"gitee.com/chunanyong/zorm"
 	"github.com/sjqzhang/gmock/util"
 	"io/ioutil"
-	"log"
 	"net"
 	"os"
 	"reflect"
@@ -153,7 +152,7 @@ func (m *MockZORM) RegisterModels(models ...interface{}) {
 			if mt.Kind() != reflect.Ptr || reflect.TypeOf(mv.Interface()).Kind() != reflect.Struct {
 				m.models = append(m.models, model)
 			} else {
-				log.Panic(fmt.Sprintf("model should be struct prt"))
+				logger.Panic(fmt.Sprintf("model should be struct prt"))
 			}
 		}
 	}
@@ -180,7 +179,7 @@ func (m *MockZORM) initSQL() {
 		for _, sql := range sqls {
 			_,err := db.Exec(sql)
 			if err != nil {
-				log.Print(sql)
+				logger.Error(sql)
 				panic(err)
 			}
 		}
@@ -191,18 +190,18 @@ func (m *MockZORM) initSQL() {
 		for _, sqlStr := range sqls {
 			_,err :=db.Exec(sqlStr)
 			if err != nil {
-				log.Print(filePath)
+				logger.Error(filePath)
 				panic(err)
 			}
 		}
-		log.Printf("sql file %v is loaded", filePath)
+		logger.Error(fmt.Sprintf("sql file %v is loaded", filePath))
 	}
 }
 
 // ReadMockSQl read sql file to string
 func (m *MockZORM) readMockSQl(filePath string) string {
 	if _, err := os.Stat(filePath); err != nil {
-		log.Print(err)
+		logger.Error(err)
 		return ""
 	}
 	fp, err := os.Open(filePath)

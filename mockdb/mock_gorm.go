@@ -30,6 +30,30 @@ type MockGORM struct {
 	models            []interface{}
 	resetHandler      func(orm *MockGORM)
 }
+type Logger struct {
+	tag string
+	log *log.Logger
+}
+
+func NewLogger(tag string) *Logger {
+	return &Logger{tag: tag, log: log.New(os.Stdout, fmt.Sprintf("[%v] ", tag), log.LstdFlags)}
+}
+
+func (l *Logger) Log(msg interface{}) {
+	l.log.Println("\u001B[32m" + fmt.Sprintf("%v", msg)  + "\u001B[0m")
+}
+func (l *Logger) Warn(msg interface{}) {
+	l.log.Println("\u001B[33m" + fmt.Sprintf("%v", msg)  + "\u001B[0m")
+}
+func (l *Logger) Error(msg interface{}) {
+
+	l.log.Println("\u001B[31m" + fmt.Sprintf("%v", msg) + "\u001B[0m")
+}
+func (l *Logger) Panic(msg interface{}) {
+	panic("\u001B[31m" + fmt.Sprintf("%v", msg)  + "\u001B[0m")
+}
+
+var logger = NewLogger("gmock.mockdb")
 
 func NewMockGORM(pathToSqlFileName string, resetHandler func(orm *MockGORM)) *MockGORM {
 	mock := MockGORM{
@@ -124,7 +148,7 @@ func (m *MockGORM) dropTables() {
 				if err == nil {
 					err = m.db.DropTable(name).Error
 					if err != nil {
-						log.Print(err)
+						logger.Error(err)
 					}
 				}
 			}
@@ -172,7 +196,7 @@ func (m *MockGORM) RegisterModels(models ...interface{}) {
 			if mt.Kind() != reflect.Ptr || reflect.TypeOf(mv.Interface()).Kind() != reflect.Struct {
 				m.models = append(m.models, model)
 			} else {
-				log.Panic(fmt.Sprintf("model should be struct prt"))
+				logger.Panic(fmt.Sprintf("model should be struct prt"))
 			}
 		}
 	}
@@ -196,7 +220,7 @@ func (m *MockGORM) initSQL() {
 		for _, sql := range sqls {
 			err := m.db.Exec(sql).Error
 			if err != nil {
-				log.Print(sql)
+				logger.Error(sql)
 				panic(err)
 			}
 		}
@@ -207,11 +231,11 @@ func (m *MockGORM) initSQL() {
 		for _, sql := range sqls {
 			err := m.db.Exec(sql).Error
 			if err != nil {
-				log.Print(filePath)
+				logger.Error(filePath)
 				panic(err)
 			}
 		}
-		log.Printf("sql file %v is loaded", filePath)
+		logger.Log(fmt.Sprintf("sql file %v is loaded", filePath))
 	}
 
 }
@@ -220,7 +244,7 @@ func (m *MockGORM) initSQL() {
 func (m *MockGORM) readMockSQl(filePath string) string {
 	_ = sqlite3.SQLITE_COPY
 	if _, err := os.Stat(filePath); err != nil {
-		log.Print(err)
+		logger.Error(err)
 		return ""
 	}
 	fp, err := os.Open(filePath)

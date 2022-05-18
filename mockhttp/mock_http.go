@@ -34,6 +34,7 @@ type reqrsp struct {
 	Request  Request  `json:"request"`
 	Response Response `json:"response"`
 }
+var consoleLog = log.New(os.Stdout, "[gmock.mockhttp] ", log.LstdFlags)
 
 // Request represent the structure of real Request
 type Request struct {
@@ -138,7 +139,7 @@ func (m *httpHandler) getRequest(rr *http.Request) reqrsp {
 	for _, req := range m.mockHttpServer.mockReqRsp {
 		exp, err := regexp.Compile(fmt.Sprintf("%v", req.Request.Endpoint))
 		if err != nil {
-			log.Println(err)
+			consoleLog.Println(err)
 			continue
 		}
 		if exp.MatchString(rr.URL.Path) && req.Request.Host == rr.Host && strings.ToUpper(req.Request.Method) == strings.ToUpper(rr.Method) {
@@ -157,10 +158,10 @@ func (m *httpHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	defer func() {
 		data, err := ioutil.ReadAll(req.Body)
 		if err != nil {
-			log.Println(err)
+			consoleLog.Println(err)
 		}
-		log.Println(fmt.Sprintf("\033[32m <Request> Method:'%v'  RequestURI:%v Request Body:%v \u001B[0m", req.Method, req.RequestURI, string(data)))
-		log.Println(fmt.Sprintf("\u001B[33m <Response> Method:'%v' Status:%v  RequestURI:%v Response Body:%v \u001B[0m", req.Method, *respStatusPtr,  req.URL, *bodyPrt))
+		consoleLog.Println(fmt.Sprintf("\033[32m <Request> Method:'%v'  RequestURI:%v Request Body:%v \u001B[0m", req.Method, req.RequestURI, string(data)))
+		consoleLog.Println(fmt.Sprintf("\u001B[33m <Response> Method:'%v' Status:%v  RequestURI:%v Response Body:%v \u001B[0m", req.Method, *respStatusPtr,  req.URL, *bodyPrt))
 	}()
 	key := fmt.Sprintf("#%v_#%v_#%v", req.Host, strings.ToUpper(req.Method), req.URL.Path)
 	if rsp, ok := m.mockHttpServer.reqMap[key]; ok {
@@ -214,13 +215,12 @@ func (m *httpHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 	//not pass proxy
-	log.Println("")
 	client := http.Client{}
 	client.Transport = &http.Transport{}
 	req.RequestURI = ""
 	rsp, err := client.Do(req)
 	if err != nil {
-		log.Println(err)
+		consoleLog.Println(err)
 		return
 	}
 	io.Copy(resp, rsp.Body)
@@ -257,7 +257,7 @@ func (m *MockHttpServer) Start() (closeFunc func()) {
 		// recover the http server
 		defer func() {
 			if err := recover(); err != nil {
-				log.Println(err)
+				consoleLog.Println(err)
 			}
 		}()
 		err := server.ListenAndServe()
@@ -284,9 +284,9 @@ func (m *MockHttpServer) Start() (closeFunc func()) {
 	return m.closeFunc
 }
 
-func (m *MockHttpServer) SetCustomHttpHandler(handler http.Handler) {
-	m.handler = handler
-}
+//func (m *MockHttpServer) SetCustomHttpHandler(handler http.Handler) {
+//	m.handler = handler
+//}
 
 func (m *MockHttpServer) SetReqRspHandler(reqHander func(req *Request, rsp *Response)) {
 	req, rsp := m.newReqToResponse()
@@ -313,22 +313,8 @@ func (m *MockHttpServer) newReqToResponse() (Request, Response) {
 func (m *MockHttpServer) InitMockHttpServer() func() {
 	os.Setenv("HTTP_PROXY", fmt.Sprintf("http://127.0.0.1:%v", m.httpProxyPort))
 	os.Setenv("HTTPS_PROXY", fmt.Sprintf("http://127.0.0.1:%v", m.httpProxyPort))
-
-	//go func() {
-	//	err := http.ListenAndServe(fmt.Sprintf("0.0.0.0:%v", m.httpProxyPort), m.handler)
-	//	if err != nil {
-	//		panic(err)
-	//	}
-	//}()
-	//router := mux.NewRouter()
-	//httpServer := fts.NewServer(m.mockApiDir, router, &http.Server{Addr: fmt.Sprintf("0.0.0.0:%v", m.fakeHttpPort), Handler: router}, &fts.Proxy{}, false)
-	//err := httpServer.Build()
-	//if err != nil {
-	//	panic(err)
-	//}
-	//httpServer.Run()
 	if m.IsAlive() {
-		log.Println(fmt.Sprintf("server is running. listen on:%v", m.httpProxyPort))
+		consoleLog.Println(fmt.Sprintf("server is running. listen on:%v", m.httpProxyPort))
 		return m.closeFunc
 	}
 	return m.Start()

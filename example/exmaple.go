@@ -23,14 +23,14 @@ type User struct {
 }
 
 func main() {
-	//testMockGORM()
-	//testMockGORMV2()
-	//testMockXORM()
-	//testMockZORM()
-	//testMockRedis()
+	testMockGORM()
+	testMockGORMV2()
+	testMockXORM()
+	testMockZORM()
+	testMockRedis()
 	testMockHttpServer()
-	//testMockDocker()
-	//testDBUtil()
+	testMockDocker()
+	testDBUtil()
 
 }
 
