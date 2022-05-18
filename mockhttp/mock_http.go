@@ -1,6 +1,7 @@
 package mockhttp
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -48,11 +49,42 @@ type Response struct {
 	Status  int                `json:"status"`
 	Body    string             `json:"body"`
 	Headers *map[string]string `json:"headers"`
+	Handler func(resp http.ResponseWriter, req *http.Request)
 }
 
 type httpHandler struct {
 	allowProxyHosts []string
 	mockHttpServer  *MockHttpServer
+}
+
+type bufferReadWrite struct {
+	buf  *bytes.Buffer
+	head map[string][]string
+}
+
+func (b *bufferReadWrite) Header() http.Header {
+	return b.head
+}
+
+func (b *bufferReadWrite) Write(bu []byte) (int, error) {
+
+	return b.buf.Write(bu)
+}
+func (b *bufferReadWrite) Read() []byte {
+
+	return b.buf.Bytes()
+}
+
+func (b *bufferReadWrite) WriteHeader(statusCode int) {
+
+}
+
+func newBuffer() *bufferReadWrite {
+	return &bufferReadWrite{
+		buf:  &bytes.Buffer{},
+		head: make(map[string][]string, 10),
+	}
+
 }
 
 func initReqRsp(mockJSONDir string) ([]reqrsp, error) {
@@ -118,8 +150,17 @@ func (m *httpHandler) getRequest(rr *http.Request) reqrsp {
 
 func (m *httpHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	var body string
+	bodyPrt:= &body
+	var respStatus int
+	respStatusPtr:=&respStatus
+	buff := newBuffer()
 	defer func() {
-		log.Println(fmt.Sprintf("Method:'%v'  URL:%v Body:%v", req.Method, req.URL, body))
+		data, err := ioutil.ReadAll(req.Body)
+		if err != nil {
+			log.Println(err)
+		}
+		log.Println(fmt.Sprintf("\033[32m <Request> Method:'%v'  RequestURI:%v Request Body:%v \u001B[0m", req.Method, req.RequestURI, string(data)))
+		log.Println(fmt.Sprintf("\u001B[33m <Response> Method:'%v' Status:%v  RequestURI:%v Response Body:%v \u001B[0m", req.Method, *respStatusPtr,  req.URL, *bodyPrt))
 	}()
 	key := fmt.Sprintf("#%v_#%v_#%v", req.Host, strings.ToUpper(req.Method), req.URL.Path)
 	if rsp, ok := m.mockHttpServer.reqMap[key]; ok {
@@ -128,9 +169,18 @@ func (m *httpHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 				resp.Header().Set(k, v)
 			}
 		}
+		if rsp.Handler != nil {
+
+			rsp.Handler(buff, req)
+			resp.Write([]byte(buff.buf.String()))
+			body = buff.buf.String()
+			respStatus=rsp.Status
+			return
+		}
 		resp.WriteHeader(rsp.Status)
 		resp.Write([]byte(rsp.Body))
 		body = rsp.Body
+		respStatus=rsp.Status
 		return
 	}
 	//uri, err := url.Parse(fmt.Sprintf("http://127.0.0.1:%v", m.mockHttpServer.fakeHttpPort))
@@ -143,9 +193,17 @@ func (m *httpHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 			f = true
 			r := m.getRequest(req)
 			if r.Request.Endpoint != "" {
+				if r.Response.Handler != nil {
+					r.Response.Handler(buff, req)
+					resp.Write([]byte(buff.buf.String()))
+					body = buff.buf.String()
+					respStatus=r.Response.Status
+					return
+				}
 				resp.WriteHeader(r.Response.Status)
 				resp.Write([]byte(r.Response.Body))
 				body = r.Response.Body
+				respStatus=r.Response.Status
 				return
 			}
 		}

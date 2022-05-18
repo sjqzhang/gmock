@@ -14,7 +14,7 @@
     "request": {
       "host": "www.baidu.com",
       "method": "GET",
-      "endpoint": "/{key}/{value}"
+      "endpoint": "/.*"
     },
     "response": {
       "status": 200,
