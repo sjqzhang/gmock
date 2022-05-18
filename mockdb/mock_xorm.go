@@ -6,7 +6,6 @@ import (
 	"github.com/mattn/go-sqlite3"
 	"github.com/sjqzhang/gmock/util"
 	"io/ioutil"
-	"log"
 	"net"
 	"os"
 	"reflect"
@@ -141,7 +140,7 @@ func (m *MockXORM) RegisterModels(models ...interface{}) {
 			if mt.Kind() != reflect.Ptr || reflect.TypeOf(mv.Interface()).Kind() != reflect.Struct {
 				m.models = append(m.models, model)
 			} else {
-				log.Panic(fmt.Sprintf("model should be struct prt"))
+				logger.Panic(fmt.Sprintf("model should be struct prt"))
 			}
 		}
 	}
@@ -165,7 +164,7 @@ func (m *MockXORM) initSQL() {
 		for _, sql := range sqls {
 			_, err := m.engine.Exec(sql)
 			if err != nil {
-				log.Print(sql)
+				logger.Error(sql)
 				panic(err)
 			}
 		}
@@ -176,11 +175,11 @@ func (m *MockXORM) initSQL() {
 		for _, sql := range sqls {
 			_, err := m.engine.Exec(sql)
 			if err != nil {
-				log.Print(filePath)
+				logger.Error(filePath)
 				panic(err)
 			}
 		}
-		log.Printf("sql file %v is loaded", filePath)
+		logger.Log(fmt.Sprintf("sql file %v is loaded", filePath))
 	}
 }
 
@@ -188,7 +187,7 @@ func (m *MockXORM) initSQL() {
 func (m *MockXORM) readMockSQl(filePath string) string {
 	_ = sqlite3.SQLITE_COPY
 	if _, err := os.Stat(filePath); err != nil {
-		log.Print(err)
+		logger.Error(err)
 		return ""
 	}
 	fp, err := os.Open(filePath)

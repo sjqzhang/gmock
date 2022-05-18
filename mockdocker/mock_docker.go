@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	docker "github.com/fsouza/go-dockerclient"
 	"io"
 	"io/ioutil"
 	"log"
+	"os"
 	"os/exec"
 	"regexp"
 	"strings"
@@ -19,6 +21,32 @@ func getDockerClient() (*docker.Client, error) {
 
 	return docker.NewClientFromEnv()
 }
+
+type Logger struct {
+	tag string
+	log *log.Logger
+}
+
+func NewLogger(tag string) *Logger {
+	return &Logger{tag: tag, log: log.New(os.Stdout, fmt.Sprintf("[%v] ", tag), log.LstdFlags)}
+}
+
+func (l *Logger) Log(msg interface{}) {
+	l.log.Println("\u001B[32m" + fmt.Sprintf("%v", msg)  + "\u001B[0m")
+}
+func (l *Logger) Warn(msg interface{}) {
+	l.log.Println("\u001B[33m" + fmt.Sprintf("%v", msg)  + "\u001B[0m")
+}
+func (l *Logger) Error(msg interface{}) {
+
+	l.log.Println("\u001B[31m" + fmt.Sprintf("%v", msg) + "\u001B[0m")
+}
+func (l *Logger) Panic(msg interface{}) {
+	panic("\u001B[31m" + fmt.Sprintf("%v", msg)  + "\u001B[0m")
+}
+
+var logger = NewLogger("gmock.mockdocker")
+
 
 type MockService interface {
 	InitContainer(handler func(opts *docker.CreateContainerOptions)) error
@@ -88,7 +116,7 @@ func (m *MockDockerService) startServiceWithCmd(cmdStr string) error {
 	}
 	errBytes, _ := ioutil.ReadAll(stderr)
 	if len(errBytes) > 0 {
-		log.Println(string(errBytes))
+		logger.Log(string(errBytes))
 	}
 	opBytes, err := ioutil.ReadAll(stdout)
 	if len(opBytes) > 64 {
@@ -97,7 +125,7 @@ func (m *MockDockerService) startServiceWithCmd(cmdStr string) error {
 			m.containerIDs = append(m.containerIDs, string(id))
 		}
 	} else {
-		log.Println(string(opBytes))
+		logger.Log(string(opBytes))
 	}
 	return nil
 }
@@ -121,9 +149,9 @@ func (m *MockDockerService) WaitForReady(checkReadyCommand string, timeout time.
 		process.Stderr = &buf
 		err := process.Run()
 		if err != nil {
-			log.Println(err)
+			logger.Error(err)
 		}
-		log.Println(string(buf.Bytes()))
+		logger.Log(string(buf.Bytes()))
 		if process.ProcessState.Sys().(syscall.WaitStatus).ExitStatus() == 0 {
 			return true
 		}
@@ -151,14 +179,14 @@ func (m *MockDockerService) Destroy() {
 		id := container.ID
 		err := m.client.StopContainer(id, 15)
 		if err != nil {
-			log.Println(err)
+			logger.Error(err)
 		}
 		var removeContainer docker.RemoveContainerOptions
 		removeContainer.ID = id
 		removeContainer.Force = true
 		err2 := m.client.RemoveContainer(removeContainer)
 		if err2 != nil {
-			log.Println(err)
+			logger.Error(err)
 		}
 	}
 
@@ -168,12 +196,12 @@ func (m *MockDockerService) Destroy() {
 		cmd := exec.CommandContext(ctx, "docker", "stop", containerid)
 		err := cmd.Run()
 		if err != nil {
-			log.Println(err)
+			logger.Error(err)
 		}
 		cmd = exec.Command("docker", "rm", containerid)
 		err = cmd.Run()
 		if err != nil {
-			log.Println(err)
+			logger.Error(err)
 		}
 	}
 
