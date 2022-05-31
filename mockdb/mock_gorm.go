@@ -236,9 +236,13 @@ func (m *MockGORM) initSQL() {
 		sqlText := m.readMockSQl(filePath)
 		sqls := m.parseMockSQL(sqlText)
 		for _, sql := range sqls {
+			if strings.TrimSpace(sql)=="" {
+				continue
+			}
 			err := m.db.Exec(sql).Error
 			if err != nil {
 				logger.Error(filePath)
+				logger.Error(sql)
 				panic(err)
 			}
 		}
