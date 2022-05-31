@@ -173,6 +173,7 @@ func (m *MockGORMV2) initSQL() {
 			err := m.db.Exec(sqlStr).Error
 			if err != nil {
 				logger.Error(filePath)
+				logger.Error(sqlStr)
 				panic(err)
 			}
 		}
