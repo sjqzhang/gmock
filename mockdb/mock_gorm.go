@@ -40,17 +40,17 @@ func NewLogger(tag string) *Logger {
 }
 
 func (l *Logger) Log(msg interface{}) {
-	l.log.Println("\u001B[32m" + fmt.Sprintf("%v", msg)  + "\u001B[0m")
+	l.log.Println("\u001B[32m" + fmt.Sprintf("%v", msg) + "\u001B[0m")
 }
 func (l *Logger) Warn(msg interface{}) {
-	l.log.Println("\u001B[33m" + fmt.Sprintf("%v", msg)  + "\u001B[0m")
+	l.log.Println("\u001B[33m" + fmt.Sprintf("%v", msg) + "\u001B[0m")
 }
 func (l *Logger) Error(msg interface{}) {
 
 	l.log.Println("\u001B[31m" + fmt.Sprintf("%v", msg) + "\u001B[0m")
 }
 func (l *Logger) Panic(msg interface{}) {
-	panic("\u001B[31m" + fmt.Sprintf("%v", msg)  + "\u001B[0m")
+	panic("\u001B[31m" + fmt.Sprintf("%v", msg) + "\u001B[0m")
 }
 
 var logger = NewLogger("gmock.mockdb")
@@ -83,6 +83,7 @@ func NewMockGORM(pathToSqlFileName string, resetHandler func(orm *MockGORM)) *Mo
 		db, err = gorm.Open("sqlite3", ":memory:")
 	}
 	db.SingularTable(true)
+
 	if err != nil {
 		panic(err)
 	}
@@ -120,6 +121,9 @@ func (m *MockGORM) ResetAndInit() {
 	if m.resetHandler != nil {
 		m.resetHandler(m)
 	}
+	//if err := m.db.Commit().Error; err != nil {
+	//	logger.Error(err)
+	//}
 }
 
 //func (m *MockGORM) GetTableNames() []string {
@@ -157,7 +161,10 @@ func (m *MockGORM) dropTables() {
 
 	} else {
 		for _, model := range m.models {
-			m.db.DropTableIfExists(model)
+			err := m.db.DropTableIfExists(model).Error
+			if err != nil {
+				logger.Error(err)
+			}
 		}
 	}
 }
