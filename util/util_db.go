@@ -51,64 +51,108 @@ func (u *DBUtil) selectToInsertSQL(rValue reflect.Value, rType reflect.Type, tab
 	if rValue.Elem().Kind() == reflect.Slice || rValue.Elem().Kind() == reflect.Array {
 		for i := 0; i < rValue.Elem().Len(); i++ {
 			obj := rValue.Elem().Index(i)
-			if obj.Kind() == reflect.Ptr {
-				obj = obj.Elem()
+
+			if (obj.Kind() == reflect.Ptr && obj.Elem().Kind() == reflect.Struct) || obj.Kind() == reflect.Struct {
+				sqls = append(sqls, u.getStructSQL(rType, obj, tableName))
 			}
-			if obj.Kind() == reflect.Struct {
-				var fields []string
-				var fieldValues []string
-				for j := 0; j < obj.NumField(); j++ {
-					name := rType.Field(j).Tag.Get("json")
-					if name == "" {
-						name = rType.Field(i).Name
-					}
-					fields = append(fields, fmt.Sprintf("`%v`", name))
-					field := obj.Field(j)
-					if field.Kind() == reflect.Ptr {
-						field = field.Elem()
-					}
-					switch field.Kind() {
 
-					case reflect.String:
-						fieldValues = append(fieldValues, fmt.Sprintf("'%v'", field.Interface()))
-					case reflect.Int64, reflect.Int32, reflect.Int, reflect.Float32, reflect.Float64, reflect.Bool:
-						fieldValues = append(fieldValues, fmt.Sprintf("%v", field.Interface()))
-					default:
-						fieldValues = append(fieldValues, fmt.Sprintf("'%v'", field.Interface()))
-
-					}
-
-				}
-				sqls = append(sqls, fmt.Sprintf("INSERT INTO  `%v`(%v) VALUES(%v)", tableName, strings.Join(fields, ","), strings.Join(fieldValues, ",")))
-			}
 		}
 		return tableName, sqls
 	}
-	if rValue.Elem().Kind() == reflect.Struct { //对struct处理
+
+	if rValue.Elem().Kind() == reflect.Struct {
+		sqls = append(sqls, u.getStructSQL(rType, rValue, tableName))
+	}
+
+	return tableName, sqls
+}
+
+func (u *DBUtil) getTagAttr(f reflect.StructField, tagName string, tagAttr string) (string, bool) {
+	if tag, ok := f.Tag.Lookup(tagName); ok {
+		m := make(map[string]string)
+		tags := strings.Split(tag, ";")
+		for _, t := range tags {
+			kvs := strings.Split(t, ":")
+			if len(kvs) == 1 {
+				m[kvs[0]] = ""
+			}
+			if len(kvs) == 2 {
+				m[kvs[0]] = kvs[1]
+			}
+		}
+		v, o := m[tagAttr]
+		return v, o
+	}
+	return "", false
+}
+
+func (u *DBUtil) getStructSQL(rType reflect.Type, rValue reflect.Value, tableName string) string {
+	if rValue.Kind() == reflect.Ptr {
+		rValue = rValue.Elem()
+	}
+	if rValue.Kind() == reflect.Struct { //对struct处理
 		var fields []string
 		var fieldValues []string
+		var name string
+		var field reflect.Value
+		var ok bool
 		for i := 0; i < rType.NumField(); i++ {
-			name := rType.Field(i).Tag.Get("json")
+			name = rType.Field(i).Tag.Get("json")
+			field = rValue.Field(i)
+			if rType.Field(i).Anonymous {
+				fmt.Println(rValue.Field(i).Kind().String())
+				if rValue.Field(i).Kind() == reflect.Struct {
+					for j := 0; j < rValue.Field(i).Type().NumField(); j++ {
+						name = rValue.Field(i).Type().Field(j).Tag.Get("json")
+						if name == "" {
+							name, ok = u.getTagAttr(rValue.Field(i).Type().Field(j), "gorm", "column")
+							if !ok {
+								continue
+							}
+							//strings.Split(rValue.Field(i).Type().Field(j).Tag.Get("gorm"), ";")
+						}
+						if rValue.Field(i).Type().Kind() == reflect.Ptr {
+							field = rValue.Field(i).Elem().Field(j)
+						} else {
+							field = rValue.Field(i).Field(j)
+						}
+						if name == "" {
+							continue
+						}
+						fields = append(fields, fmt.Sprintf("`%v`", name))
+						switch field.Kind() {
+
+						case reflect.String:
+							fieldValues = append(fieldValues,  fmt.Sprintf("'%v'",  strings.Replace( fmt.Sprintf("%v", field.Interface()),"'","\\'" ,-1)))
+						case reflect.Int64, reflect.Int32, reflect.Int, reflect.Float32, reflect.Float64, reflect.Bool:
+							fieldValues = append(fieldValues, fmt.Sprintf("%v", field.Interface()))
+						default:
+							fieldValues = append(fieldValues,  fmt.Sprintf("'%v'",  strings.Replace( fmt.Sprintf("%v", field.Interface()),"'","\\'" ,-1)))
+
+						}
+					}
+				}
+			}
+
 			if name == "" {
-				name = rType.Field(i).Name
+				continue
 			}
 			fields = append(fields, fmt.Sprintf("`%v`", name))
-			field := rValue.Elem().Field(i)
 			switch field.Kind() {
 
 			case reflect.String:
-				fieldValues = append(fieldValues, fmt.Sprintf("'%v'", field.Interface()))
+				fieldValues = append(fieldValues,  fmt.Sprintf("'%v'",  strings.Replace( fmt.Sprintf("%v", field.Interface()),"'","\\'" ,-1)))
 			case reflect.Int64, reflect.Int32, reflect.Int, reflect.Float32, reflect.Float64, reflect.Bool:
 				fieldValues = append(fieldValues, fmt.Sprintf("%v", field.Interface()))
 			default:
-				fieldValues = append(fieldValues, fmt.Sprintf("'%v'", field.Interface()))
+				fieldValues = append(fieldValues,  fmt.Sprintf("'%v'",  strings.Replace( fmt.Sprintf("%v", field.Interface()),"'","\\'" ,-1)))
 
 			}
 
 		}
-		sqls = append(sqls, fmt.Sprintf("INSERT INTO `%v`(%v) VALUES(%v)", tableName, strings.Join(fields, ","), strings.Join(fieldValues, ",")))
+		return fmt.Sprintf("INSERT INTO `%v`(%v) VALUES(%v)", tableName, strings.Join(fields, ","), strings.Join(fieldValues, ","))
 	}
-	return tableName, sqls
+	return ""
 }
 
 func (u *DBUtil) SelectToInsertSQLV2(db *gormv2.DB) (string, []string) {
