@@ -51,13 +51,22 @@ func (u *DBUtil) selectToInsertSQL(rValue reflect.Value, rType reflect.Type, tab
 	if rValue.Elem().Kind() == reflect.Slice || rValue.Elem().Kind() == reflect.Array {
 		for i := 0; i < rValue.Elem().Len(); i++ {
 			obj := rValue.Elem().Index(i)
+			if obj.Kind() == reflect.Ptr {
+				obj = obj.Elem()
+			}
 			if obj.Kind() == reflect.Struct {
 				var fields []string
 				var fieldValues []string
 				for j := 0; j < obj.NumField(); j++ {
 					name := rType.Field(j).Tag.Get("json")
+					if name == "" {
+						name = rType.Field(i).Name
+					}
 					fields = append(fields, fmt.Sprintf("`%v`", name))
 					field := obj.Field(j)
+					if field.Kind() == reflect.Ptr {
+						field = field.Elem()
+					}
 					switch field.Kind() {
 
 					case reflect.String:
@@ -80,6 +89,9 @@ func (u *DBUtil) selectToInsertSQL(rValue reflect.Value, rType reflect.Type, tab
 		var fieldValues []string
 		for i := 0; i < rType.NumField(); i++ {
 			name := rType.Field(i).Tag.Get("json")
+			if name == "" {
+				name = rType.Field(i).Name
+			}
 			fields = append(fields, fmt.Sprintf("`%v`", name))
 			field := rValue.Elem().Field(i)
 			switch field.Kind() {
