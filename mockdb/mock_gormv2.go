@@ -8,24 +8,30 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
+	"io"
 	"io/ioutil"
 	"net"
 	"os"
 	"reflect"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
+	"xorm.io/xorm"
 )
 
 type MockGORMV2 struct {
 	pathToSqlFileName string `json:"path_to_sql_file_name"`
 	db                *gorm.DB
+	dbRecorder        *gorm.DB
+	onceRecorder      sync.Once
 	dbType            string
 	dsn               string
 	models            []interface{}
 	util              *util.DBUtil
 	resetHandler      func(resetHandler *MockGORMV2)
 	schema            string
+	dumper            *xorm.Engine
 }
 
 func NewMockGORMV2(pathToSqlFileName string, resetHandler func(orm *MockGORMV2)) *MockGORMV2 {
@@ -33,6 +39,7 @@ func NewMockGORMV2(pathToSqlFileName string, resetHandler func(orm *MockGORMV2))
 		pathToSqlFileName: pathToSqlFileName,
 		models:            make([]interface{}, 0),
 		resetHandler:      resetHandler,
+		onceRecorder:      sync.Once{},
 	}
 	var err error
 	var db *gorm.DB
@@ -49,8 +56,8 @@ func NewMockGORMV2(pathToSqlFileName string, resetHandler func(orm *MockGORMV2))
 			}
 			mock.util.RunMySQLServer("mock", i, false)
 			time.Sleep(time.Second)
-			mock.dsn= fmt.Sprintf("root:root@tcp(127.0.0.1:%v)/mock?charset=utf8&parseTime=True&loc=Local", i)
-			mock.dbType="mysql"
+			mock.dsn = fmt.Sprintf("root:root@tcp(127.0.0.1:%v)/mock?charset=utf8&parseTime=True&loc=Local", i)
+			mock.dbType = "mysql"
 			db, err = gorm.Open(mysql.Open(mock.dsn), &gorm.Config{NamingStrategy: ns})
 			break
 		}
@@ -110,11 +117,53 @@ func (m *MockGORMV2) GetDSN() (dbType string, dsn string) {
 	return
 }
 
-
 func (m *MockGORMV2) GetDBUtil() *util.DBUtil {
 	return m.util
 }
 
+func (m *MockGORMV2) Dump(w io.Writer) {
+	if m.dumper == nil {
+		logger.Error("must be call DoRecord first")
+		return
+	}
+	m.dumper.DumpAll(w)
+	m.dumper.Close()
+	os.Remove(".mock.db")
+}
+
+func (m *MockGORMV2) DoRecord(scope *gorm.DB) {
+	m.onceRecorder.Do(func() {
+		var err error
+		//m.util.RunMySQLServer("mock", 63344, false)
+		ns := schema.NamingStrategy{
+			SingularTable: true,
+		}
+		dsn := ".mock.db"
+		m.dbRecorder, err = gorm.Open(sqlite.Open(dsn), &gorm.Config{NamingStrategy: ns})
+		m.dumper, err = xorm.NewEngine("sqlite3", ".mock.db")
+		if err != nil {
+			logger.Error(err)
+			panic(err)
+		}
+	})
+
+	model := reflect.New(scope.Statement.Schema.ModelType).Interface()
+	//m.RegisterModels(model)
+	m.db.AutoMigrate(model)
+	rValue := reflect.ValueOf(scope.Statement.Model)
+	if rValue.Kind() == reflect.Ptr {
+		rValue = rValue.Elem()
+	}
+	if rValue.Kind() == reflect.Slice || rValue.Kind() == reflect.Array {
+		for i := 0; i < rValue.Len(); i++ {
+			m.dbRecorder.Create(rValue.Index(i).Interface())
+		}
+		return
+	}
+	if rValue.Kind() == reflect.Struct {
+		m.dbRecorder.Create(rValue.Interface())
+	}
+}
 func (m *MockGORMV2) InitSchemas(sqlSchema string) {
 	m.schema = sqlSchema
 }
