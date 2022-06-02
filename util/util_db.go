@@ -11,6 +11,8 @@ import (
 	"github.com/dolthub/go-mysql-server/server"
 	sqlm "github.com/dolthub/go-mysql-server/sql"
 	"github.com/dolthub/go-mysql-server/sql/information_schema"
+	"github.com/jinzhu/gorm"
+	gormv2 "gorm.io/gorm"
 	"io/ioutil"
 	"log"
 	"os"
@@ -24,6 +26,87 @@ type DBUtil struct {
 
 func NewDBUtil() *DBUtil {
 	return &DBUtil{}
+}
+
+var regSelect = regexp.MustCompile(`(?i)^select`)
+
+func (u *DBUtil) SelectToInsertSQLV1(scope *gorm.Scope) (string, []string) {
+	var sqls []string
+	rValue := reflect.ValueOf(scope.Value)
+	rType := scope.GetModelStruct().ModelType
+	sql := scope.SQL
+	tableName := scope.TableName()
+	if regSelect.MatchString(sql) {
+		return u.selectToInsertSQL(rValue, rType, tableName)
+	}
+	return tableName, sqls
+}
+
+func (u *DBUtil) selectToInsertSQL(rValue reflect.Value, rType reflect.Type, tableName string) (string, []string) {
+	var sqls []string
+	if rValue.Kind() != reflect.Ptr {
+		return tableName, sqls
+	}
+
+	if rValue.Elem().Kind() == reflect.Slice || rValue.Elem().Kind() == reflect.Array {
+		for i := 0; i < rValue.Elem().Len(); i++ {
+			obj := rValue.Elem().Index(i)
+			if obj.Kind() == reflect.Struct {
+				var fields []string
+				var fieldValues []string
+				for j := 0; j < obj.NumField(); j++ {
+					name := rType.Field(j).Tag.Get("json")
+					fields = append(fields, fmt.Sprintf("`%v`", name))
+					field := obj.Field(j)
+					switch field.Kind() {
+
+					case reflect.String:
+						fieldValues = append(fieldValues, fmt.Sprintf("'%v'", field.Interface()))
+					case reflect.Int64, reflect.Int32, reflect.Int, reflect.Float32, reflect.Float64, reflect.Bool:
+						fieldValues = append(fieldValues, fmt.Sprintf("%v", field.Interface()))
+					default:
+						fieldValues = append(fieldValues, fmt.Sprintf("'%v'", field.Interface()))
+
+					}
+
+				}
+				sqls = append(sqls, fmt.Sprintf("INSERT INTO  `%v`(%v) VALUES(%v)", tableName, strings.Join(fields, ","), strings.Join(fieldValues, ",")))
+			}
+		}
+		return tableName, sqls
+	}
+	if rValue.Elem().Kind() == reflect.Struct { //对struct处理
+		var fields []string
+		var fieldValues []string
+		for i := 0; i < rType.NumField(); i++ {
+			name := rType.Field(i).Tag.Get("json")
+			fields = append(fields, fmt.Sprintf("`%v`", name))
+			field := rValue.Elem().Field(i)
+			switch field.Kind() {
+
+			case reflect.String:
+				fieldValues = append(fieldValues, fmt.Sprintf("'%v'", field.Interface()))
+			case reflect.Int64, reflect.Int32, reflect.Int, reflect.Float32, reflect.Float64, reflect.Bool:
+				fieldValues = append(fieldValues, fmt.Sprintf("%v", field.Interface()))
+			default:
+				fieldValues = append(fieldValues, fmt.Sprintf("'%v'", field.Interface()))
+
+			}
+
+		}
+		sqls = append(sqls, fmt.Sprintf("INSERT INTO `%v`(%v) VALUES(%v)", tableName, strings.Join(fields, ","), strings.Join(fieldValues, ",")))
+	}
+	return tableName, sqls
+}
+
+func (u *DBUtil) SelectToInsertSQLV2(db *gormv2.DB) (string, []string) {
+	var sqls []string
+	rType := db.Statement.Schema.ModelType
+	rValue := reflect.ValueOf(db.Statement.Model)
+	if regSelect.MatchString(db.Statement.SQL.String()) {
+		return u.selectToInsertSQL(rValue, rType, db.Statement.Table)
+	}
+	return db.Statement.Table, sqls
 }
 
 func (u *DBUtil) QueryListBySQL(db *sql.DB, sqlStr string, args ...interface{}) ([]map[string]interface{}, error) {
