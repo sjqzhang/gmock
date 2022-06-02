@@ -123,11 +123,11 @@ func (u *DBUtil) getStructSQL(rType reflect.Type, rValue reflect.Value, tableNam
 						switch field.Kind() {
 
 						case reflect.String:
-							fieldValues = append(fieldValues,  fmt.Sprintf("'%v'",  strings.Replace( fmt.Sprintf("%v", field.Interface()),"'","\\'" ,-1)))
+							fieldValues = append(fieldValues, fmt.Sprintf("'%v'", strings.Replace(fmt.Sprintf("%v", field.Interface()), "'", "\\'", -1)))
 						case reflect.Int64, reflect.Int32, reflect.Int, reflect.Float32, reflect.Float64, reflect.Bool:
 							fieldValues = append(fieldValues, fmt.Sprintf("%v", field.Interface()))
 						default:
-							fieldValues = append(fieldValues,  fmt.Sprintf("'%v'",  strings.Replace( fmt.Sprintf("%v", field.Interface()),"'","\\'" ,-1)))
+							fieldValues = append(fieldValues, fmt.Sprintf("'%v'", strings.Replace(fmt.Sprintf("%v", field.Interface()), "'", "\\'", -1)))
 
 						}
 					}
@@ -141,11 +141,11 @@ func (u *DBUtil) getStructSQL(rType reflect.Type, rValue reflect.Value, tableNam
 			switch field.Kind() {
 
 			case reflect.String:
-				fieldValues = append(fieldValues,  fmt.Sprintf("'%v'",  strings.Replace( fmt.Sprintf("%v", field.Interface()),"'","\\'" ,-1)))
+				fieldValues = append(fieldValues, fmt.Sprintf("'%v'", strings.Replace(fmt.Sprintf("%v", field.Interface()), "'", "\\'", -1)))
 			case reflect.Int64, reflect.Int32, reflect.Int, reflect.Float32, reflect.Float64, reflect.Bool:
 				fieldValues = append(fieldValues, fmt.Sprintf("%v", field.Interface()))
 			default:
-				fieldValues = append(fieldValues,  fmt.Sprintf("'%v'",  strings.Replace( fmt.Sprintf("%v", field.Interface()),"'","\\'" ,-1)))
+				fieldValues = append(fieldValues, fmt.Sprintf("'%v'", strings.Replace(fmt.Sprintf("%v", field.Interface()), "'", "\\'", -1)))
 
 			}
 

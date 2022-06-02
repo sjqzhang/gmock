@@ -7,6 +7,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/mattn/go-sqlite3"
 	"github.com/sjqzhang/gmock/util"
+	"io"
 	"io/ioutil"
 	"log"
 	"net"
@@ -15,7 +16,9 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
+	"xorm.io/xorm"
 )
 
 var DBType string = "sqlite3"
@@ -29,6 +32,9 @@ type MockGORM struct {
 	util              *util.DBUtil
 	models            []interface{}
 	resetHandler      func(orm *MockGORM)
+	dbRecorder        *gorm.DB
+	onceRecorder      sync.Once
+	dumper            *xorm.Engine
 }
 type Logger struct {
 	tag string
@@ -60,6 +66,7 @@ func NewMockGORM(pathToSqlFileName string, resetHandler func(orm *MockGORM)) *Mo
 		pathToSqlFileName: pathToSqlFileName,
 		models:            make([]interface{}, 0),
 		resetHandler:      resetHandler,
+		onceRecorder:      sync.Once{},
 	}
 	var err error
 	var db *gorm.DB
@@ -194,6 +201,51 @@ func (m *MockGORM) GetDBUtil() *util.DBUtil {
 	return m.util
 }
 
+func (m *MockGORM) Dump(w io.Writer) {
+	if m.dumper == nil {
+		logger.Error("must be call DoRecord first")
+		return
+	}
+	m.dumper.DumpAll(w)
+	m.dumper.Close()
+	m.dbRecorder.Close()
+	os.Remove(".mock.db")
+}
+
+func (m *MockGORM) DoRecord(scope *gorm.Scope) {
+
+	m.onceRecorder.Do(func() {
+		var err error
+		//m.util.RunMySQLServer("mock",63344,false)
+		//m.dbRecorder, err= gorm.Open("mysql", "root:root@tcp(127.0.0.1:63344)/mock?charset=utf8&parseTime=True&loc=Local")
+		m.dbRecorder, err = gorm.Open("sqlite3", ".mock.db")
+		m.dbRecorder.SingularTable(true)
+		m.dumper, err = xorm.NewEngine("sqlite3", ".mock.db")
+		if err != nil {
+			logger.Error(err)
+			panic(err)
+		}
+	})
+
+	model := reflect.New(scope.GetModelStruct().ModelType).Interface()
+	//m.RegisterModels(model)
+	m.dumper.Sync2(model)
+	m.dbRecorder.AutoMigrate(model)
+	rValue := reflect.ValueOf(scope.Value)
+	if rValue.Kind() == reflect.Ptr {
+		rValue = rValue.Elem()
+	}
+	if rValue.Kind() == reflect.Slice || rValue.Kind() == reflect.Array {
+		for i := 0; i < rValue.Len(); i++ {
+			m.dbRecorder.Create(rValue.Index(i).Interface())
+		}
+		return
+	}
+	if rValue.Kind() == reflect.Struct {
+		m.dbRecorder.Create(rValue.Interface())
+	}
+}
+
 // RegisterModels 注册模型
 func (m *MockGORM) RegisterModels(models ...interface{}) {
 	if len(models) > 0 {
@@ -236,7 +288,7 @@ func (m *MockGORM) initSQL() {
 		sqlText := m.readMockSQl(filePath)
 		sqls := m.parseMockSQL(sqlText)
 		for _, sql := range sqls {
-			if strings.TrimSpace(sql)=="" {
+			if strings.TrimSpace(sql) == "" {
 				continue
 			}
 			err := m.db.Exec(sql).Error
