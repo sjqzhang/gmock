@@ -13,6 +13,7 @@ import (
 	"github.com/dolthub/go-mysql-server/sql/information_schema"
 	"github.com/jinzhu/gorm"
 	gormv2 "gorm.io/gorm"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -84,6 +85,40 @@ func (u *DBUtil) getTagAttr(f reflect.StructField, tagName string, tagAttr strin
 		return v, o
 	}
 	return "", false
+}
+
+func (u *DBUtil) Dump(db *sql.DB, tables []string, w io.Writer) {
+	var sqls []string
+	for _, table := range tables {
+		rows, err := u.QueryListBySQL(db, fmt.Sprintf("select * from %v", table))
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+		for _, row := range rows {
+			var fieldNames []string
+			var fieldValues []string
+			for name, value := range row {
+				fieldNames = append(fieldNames, fmt.Sprintf("`%v`", name))
+				v := ""
+				switch value.(type) {
+				case int, int64, float64, float32, bool:
+					v = fmt.Sprintf("%v", value)
+				case string:
+					v = fmt.Sprintf("%v", strings.Replace(value.(string), "'", "\\'", -1))
+				default:
+					v = fmt.Sprintf("%v", value)
+					v = fmt.Sprintf("%v", strings.Replace(v, "'", "\\'", -1))
+				}
+				fieldValues = append(fieldValues, v)
+			}
+			sql := fmt.Sprintf("INSERT INTO `%v` (%v) VALUES (%v);\n", table, strings.Join(fieldNames, ","), strings.Join(fieldValues, ","))
+			sqls = append(sqls, sql)
+		}
+	}
+
+	w.Write([]byte(strings.Join(sqls, "")))
+
 }
 
 func (u *DBUtil) getStructSQL(rType reflect.Type, rValue reflect.Value, tableName string) string {
