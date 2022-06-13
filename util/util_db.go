@@ -20,6 +20,7 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
+	"unicode"
 )
 
 type DBUtil struct {
@@ -121,6 +122,37 @@ func (u *DBUtil) Dump(db *sql.DB, tables []string, w io.Writer) {
 
 }
 
+//下划线单词转为大写驼峰单词
+func (u *DBUtil) UderscoreToUpperCamelCase(s string) string {
+	s = strings.Replace(s, "_", " ", -1)
+	s = strings.Title(s)
+	return strings.Replace(s, " ", "", -1)
+}
+
+//下划线单词转为小写驼峰单词
+func (u *DBUtil) UderscoreToLowerCamelCase(s string) string {
+	s = u.UderscoreToUpperCamelCase(s)
+	return string(unicode.ToLower(rune(s[0]))) + s[1:]
+	return s
+}
+
+//驼峰单词转下划线单词
+func (u *DBUtil) CamelCaseToUdnderscore(s string) string {
+	var output []rune
+	for i, r := range s {
+		if i == 0 {
+			output = append(output, unicode.ToLower(r))
+		} else {
+			if unicode.IsUpper(r) {
+				output = append(output, '_')
+			}
+
+			output = append(output, unicode.ToLower(r))
+		}
+	}
+	return string(output)
+}
+
 func (u *DBUtil) getStructSQL(rType reflect.Type, rValue reflect.Value, tableName string) string {
 	if rValue.Kind() == reflect.Ptr {
 		rValue = rValue.Elem()
@@ -134,7 +166,8 @@ func (u *DBUtil) getStructSQL(rType reflect.Type, rValue reflect.Value, tableNam
 		for i := 0; i < rType.NumField(); i++ {
 			name, _ = u.getTagAttr(rType.Field(i), "gorm", "column")
 			if name == "" {
-				name = rType.Field(i).Tag.Get("json")
+				name=u.CamelCaseToUdnderscore( rType.Field(i).Name)
+				//name = rType.Field(i).Tag.Get("json")
 			}
 			field = rValue.Field(i)
 			if rType.Field(i).Anonymous {
@@ -149,7 +182,8 @@ func (u *DBUtil) getStructSQL(rType reflect.Type, rValue reflect.Value, tableNam
 							//	continue
 							//}
 							//strings.Split(rValue.Field(i).Type().Field(j).Tag.Get("gorm"), ";")
-							name = rValue.Field(i).Type().Field(j).Tag.Get("json")
+							//name = rValue.Field(i).Type().Field(j).Tag.Get("json")
+							name=u.CamelCaseToUdnderscore( rType.Field(i).Name)
 							if name == "" {
 								continue
 							}
