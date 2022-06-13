@@ -140,7 +140,7 @@ func (u *DBUtil) getStructSQL(rType reflect.Type, rValue reflect.Value, tableNam
 					for j := 0; j < rValue.Field(i).Type().NumField(); j++ {
 						//name = rValue.Field(i).Type().Field(j).Tag.Get("gorm")
 						name, ok = u.getTagAttr(rValue.Field(i).Type().Field(j), "gorm", "column")
-						if name == "" {
+						if name == "" || !ok {
 							//name, ok = u.getTagAttr(rValue.Field(i).Type().Field(j), "gorm", "column")
 							//if !ok {
 							//	continue
