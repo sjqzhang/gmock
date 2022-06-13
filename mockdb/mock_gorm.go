@@ -41,8 +41,6 @@ type Logger struct {
 	log *log.Logger
 }
 
-
-
 func NewLogger(tag string) *Logger {
 	return &Logger{tag: tag, log: log.New(os.Stdout, fmt.Sprintf("[%v] ", tag), log.LstdFlags)}
 }
@@ -220,9 +218,12 @@ func (m *MockGORM) DoRecord(scope *gorm.Scope) {
 
 	m.onceRecorder.Do(func() {
 		var err error
-		//m.util.RunMySQLServer("mock",63344,false)
-		//m.dbRecorder, err= gorm.Open("mysql", "root:root@tcp(127.0.0.1:63344)/mock?charset=utf8&parseTime=True&loc=Local")
-		m.dbRecorder, err = gorm.Open("sqlite3", ".mock.db")
+		if m.dbType == "mysql" {
+			t, dsn := m.GetDSN()
+			m.dbRecorder, err = gorm.Open(t, dsn)
+		} else {
+			m.dbRecorder, err = gorm.Open("sqlite3", ".mock.db")
+		}
 		m.dbRecorder.SingularTable(true)
 		m.dumper, err = xorm.NewEngine("sqlite3", ".mock.db")
 		if err != nil {
