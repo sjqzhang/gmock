@@ -138,13 +138,18 @@ func (u *DBUtil) getStructSQL(rType reflect.Type, rValue reflect.Value, tableNam
 				fmt.Println(rValue.Field(i).Kind().String())
 				if rValue.Field(i).Kind() == reflect.Struct {
 					for j := 0; j < rValue.Field(i).Type().NumField(); j++ {
-						name = rValue.Field(i).Type().Field(j).Tag.Get("json")
+						//name = rValue.Field(i).Type().Field(j).Tag.Get("gorm")
+						name, ok = u.getTagAttr(rValue.Field(i).Type().Field(j), "gorm", "column")
 						if name == "" {
-							name, ok = u.getTagAttr(rValue.Field(i).Type().Field(j), "gorm", "column")
-							if !ok {
+							//name, ok = u.getTagAttr(rValue.Field(i).Type().Field(j), "gorm", "column")
+							//if !ok {
+							//	continue
+							//}
+							//strings.Split(rValue.Field(i).Type().Field(j).Tag.Get("gorm"), ";")
+							name = rValue.Field(i).Type().Field(j).Tag.Get("json")
+							if name=="" {
 								continue
 							}
-							//strings.Split(rValue.Field(i).Type().Field(j).Tag.Get("gorm"), ";")
 						}
 						if rValue.Field(i).Type().Kind() == reflect.Ptr {
 							field = rValue.Field(i).Elem().Field(j)
