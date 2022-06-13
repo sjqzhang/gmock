@@ -130,24 +130,27 @@ func (u *DBUtil) getStructSQL(rType reflect.Type, rValue reflect.Value, tableNam
 		var fieldValues []string
 		var name string
 		var field reflect.Value
-		var ok bool
+		//var ok bool
 		for i := 0; i < rType.NumField(); i++ {
-			name = rType.Field(i).Tag.Get("json")
+			name, _ = u.getTagAttr(rType.Field(i), "gorm", "column")
+			if name == "" {
+				name = rType.Field(i).Tag.Get("json")
+			}
 			field = rValue.Field(i)
 			if rType.Field(i).Anonymous {
 				fmt.Println(rValue.Field(i).Kind().String())
 				if rValue.Field(i).Kind() == reflect.Struct {
 					for j := 0; j < rValue.Field(i).Type().NumField(); j++ {
 						//name = rValue.Field(i).Type().Field(j).Tag.Get("gorm")
-						name, ok = u.getTagAttr(rValue.Field(i).Type().Field(j), "gorm", "column")
-						if name == "" || !ok {
+						name, _ = u.getTagAttr(rValue.Field(i).Type().Field(j), "gorm", "column")
+						if name == "" {
 							//name, ok = u.getTagAttr(rValue.Field(i).Type().Field(j), "gorm", "column")
 							//if !ok {
 							//	continue
 							//}
 							//strings.Split(rValue.Field(i).Type().Field(j).Tag.Get("gorm"), ";")
 							name = rValue.Field(i).Type().Field(j).Tag.Get("json")
-							if name=="" {
+							if name == "" {
 								continue
 							}
 						}
