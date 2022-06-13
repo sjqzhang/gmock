@@ -41,11 +41,14 @@ type Logger struct {
 	log *log.Logger
 }
 
+
+
 func NewLogger(tag string) *Logger {
 	return &Logger{tag: tag, log: log.New(os.Stdout, fmt.Sprintf("[%v] ", tag), log.LstdFlags)}
 }
 
 func (l *Logger) Log(msg interface{}) {
+
 	l.log.Println("\u001B[32m" + fmt.Sprintf("%v", msg) + "\u001B[0m")
 }
 func (l *Logger) Warn(msg interface{}) {
@@ -62,6 +65,7 @@ func (l *Logger) Panic(msg interface{}) {
 var logger = NewLogger("gmock.mockdb")
 
 func NewMockGORM(pathToSqlFileName string, resetHandler func(orm *MockGORM)) *MockGORM {
+
 	mock := MockGORM{
 		pathToSqlFileName: pathToSqlFileName,
 		models:            make([]interface{}, 0),
