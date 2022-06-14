@@ -70,7 +70,7 @@ func NewMockGORM(pathToSqlFileName string, resetHandler func(orm *MockGORM)) *Mo
 		models:            make([]interface{}, 0),
 		resetHandler:      resetHandler,
 		recorder:          make(map[string]mapset.Set),
-		recordLock: sync.Mutex{},
+		recordLock:        sync.Mutex{},
 		//onceRecorder:      sync.Once{},
 	}
 	var err error
@@ -208,12 +208,12 @@ func (m *MockGORM) GetDBUtil() *util.DBUtil {
 
 func (m *MockGORM) DumpRecorderToSQL() []string {
 	var sqls []string
-	for tableName,set:=range m.recorder {
+	for tableName, set := range m.recorder {
 		var ids []string
-		for id:=range set.Iter() {
-           ids=append(ids,fmt.Sprintf("%v",id))
+		for id := range set.Iter() {
+			ids = append(ids, fmt.Sprintf("%v", id))
 		}
-      sqls=append(sqls,fmt.Sprintf("select * from `%v` where id in (%v)",tableName,strings.Join(ids,",")))
+		sqls = append(sqls, fmt.Sprintf("select * from `%v` where id in (%v)", tableName, strings.Join(ids, ",")))
 	}
 	return sqls
 }
@@ -267,6 +267,11 @@ func (m *MockGORM) DumpRecorderToSQL() []string {
 //}
 
 func (m *MockGORM) DoRecord(scope *gorm.Scope) {
+	defer func() {
+		if err := recover(); err != nil {
+			logger.Error(fmt.Sprintf("%v", err))
+		}
+	}()
 
 	//m.onceRecorder.Do(func() {
 	//	var err error
@@ -286,12 +291,12 @@ func (m *MockGORM) DoRecord(scope *gorm.Scope) {
 
 	m.recordLock.Lock()
 	defer m.recordLock.Unlock()
-	tableName:=scope.TableName()
-	if tableName=="" {
+	tableName := scope.TableName()
+	if tableName == "" {
 		return
 	}
-	if _,ok:= m.recorder[tableName];!ok {
-		m.recorder[tableName]=mapset.NewSet()
+	if _, ok := m.recorder[tableName]; !ok {
+		m.recorder[tableName] = mapset.NewSet()
 	}
 
 	//model := reflect.New(scope.GetModelStruct().ModelType).Interface()
@@ -302,32 +307,32 @@ func (m *MockGORM) DoRecord(scope *gorm.Scope) {
 	if rValue.Kind() == reflect.Ptr {
 		rValue = rValue.Elem()
 	}
-	id:=""
+	id := ""
 	if rValue.Kind() == reflect.Slice || rValue.Kind() == reflect.Array {
-		if rValue.Len()==0 {
+		if rValue.Len() == 0 {
 			return
 		}
-		item:=rValue.Index(0)
-		if item.Kind()==reflect.Ptr {
-			item=item.Elem()
+		item := rValue.Index(0)
+		if item.Kind() == reflect.Ptr {
+			item = item.Elem()
 		}
-		if item.Kind()!=reflect.Struct {
+		if item.Kind() != reflect.Struct {
 			return
 		}
 		for i := 0; i < item.NumField(); i++ {
-			id=item.Type().Field(i).Name
-			if id=="id" || id=="ID" || id=="Id" {
+			id = item.Type().Field(i).Name
+			if id == "id" || id == "ID" || id == "Id" {
 				break
 			}
 		}
-		if id=="" {
+		if id == "" {
 			return
 		}
 		for i := 0; i < rValue.Len(); i++ {
 			//m.dbRecorder.Create(rValue.Index(i).Interface())
-			item:=rValue.Index(i)
-			if item.Kind()==reflect.Ptr {
-				item=item.Elem()
+			item := rValue.Index(i)
+			if item.Kind() == reflect.Ptr {
+				item = item.Elem()
 			}
 			m.recorder[tableName].Add(item.FieldByName(id).Interface())
 		}
@@ -335,12 +340,12 @@ func (m *MockGORM) DoRecord(scope *gorm.Scope) {
 	}
 	if rValue.Kind() == reflect.Struct {
 		for i := 0; i < rValue.NumField(); i++ {
-			id=rValue.Type().Field(i).Name
-			if id=="id" || id=="ID" || id=="Id" {
+			id = rValue.Type().Field(i).Name
+			if id == "id" || id == "ID" || id == "Id" {
 				break
 			}
 		}
-		if id=="" {
+		if id == "" {
 			return
 		}
 		m.recorder[tableName].Add(rValue.FieldByName(id).Interface())
