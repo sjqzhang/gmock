@@ -215,8 +215,9 @@ func (m *MockGORM) DumpRecorderInfo() map[string][]string {
 		}
 		if len(ids) > 0 {
 			//sqls = append(sqls, fmt.Sprintf("select * from `%v` where id in (%v)", tableName, strings.Join(ids, ",")))
+			result[tableName] = ids
 		}
-		result[tableName] = ids
+
 	}
 	return result
 }
