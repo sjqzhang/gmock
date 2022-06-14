@@ -311,6 +311,9 @@ func (m *MockGORM) DoRecord(scope *gorm.Scope) {
 		if item.Kind()==reflect.Ptr {
 			item=item.Elem()
 		}
+		if item.Kind()!=reflect.Struct {
+			return
+		}
 		for i := 0; i < item.NumField(); i++ {
 			id=item.Type().Field(i).Name
 			if id=="id" || id=="ID" || id=="Id" {
@@ -322,7 +325,11 @@ func (m *MockGORM) DoRecord(scope *gorm.Scope) {
 		}
 		for i := 0; i < rValue.Len(); i++ {
 			//m.dbRecorder.Create(rValue.Index(i).Interface())
-			m.recorder[tableName].Add(rValue.Index(i).FieldByName(id).Interface())
+			item:=rValue.Index(i)
+			if item.Kind()==reflect.Ptr {
+				item=item.Elem()
+			}
+			m.recorder[tableName].Add(item.FieldByName(id).Interface())
 		}
 		return
 	}
