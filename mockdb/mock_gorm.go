@@ -307,8 +307,12 @@ func (m *MockGORM) DoRecord(scope *gorm.Scope) {
 		if rValue.Len()==0 {
 			return
 		}
-		for i := 0; i < rValue.Index(0).NumField(); i++ {
-			id=rValue.Index(0).Type().Field(i).Name
+		item:=rValue.Index(0)
+		if item.Kind()==reflect.Ptr {
+			item=item.Elem()
+		}
+		for i := 0; i < item.NumField(); i++ {
+			id=item.Type().Field(i).Name
 			if id=="id" || id=="ID" || id=="Id" {
 				break
 			}
