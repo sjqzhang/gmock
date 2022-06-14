@@ -88,6 +88,71 @@ func (u *DBUtil) getTagAttr(f reflect.StructField, tagName string, tagAttr strin
 	return "", false
 }
 
+func (u *DBUtil) DumpFromRecordInfo(db *sql.DB, recorder map[string][]string) map[string][]string {
+	dumpInfo := make(map[string][]string)
+	for tableName, ids := range recorder {
+		sqlStr := fmt.Sprintf("select * from `%v` where id in (%v)", tableName, strings.Join(ids, ","))
+		rows, err := db.Query(sqlStr)
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+		defer rows.Close()
+		cys, err := rows.ColumnTypes()
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+		var sqls []string
+		for rows.Next() {
+			var names []string
+			var values []string
+			l := len(cys)
+			vals := make([]interface{}, l)
+			valPtr := make([]interface{}, l)
+			for i, _ := range vals {
+				valPtr[i] = &vals[i]
+			}
+			//row := make(map[string]interface{}, l)
+			rows.Scan(valPtr...)
+
+			convertToStr := func(origin []uint8) string {
+				var bs []byte
+				for _, b := range origin {
+					bs = append(bs, b)
+				}
+				return string(bs)
+			}
+
+			for i, c := range cys {
+				names = append(names, c.Name())
+				switch c.DatabaseTypeName() {
+				// Common type names include "VARCHAR", "TEXT", "NVARCHAR", "DECIMAL", "BOOL",
+				// "INT", and "BIGINT".
+				case "VARCHAR", "TEXT", "NVARCHAR":
+					v := fmt.Sprintf("%v", convertToStr(vals[i].([]uint8)))
+					v = strings.Replace(v, "'", "\\'", -1)
+					values = append(values, fmt.Sprintf("'%v'", v))
+				default:
+					values = append(values, fmt.Sprintf("%v", convertToStr(vals[i].([]uint8))))
+				}
+
+			}
+
+			sql := fmt.Sprintf("INSERT INTO `%v`(%v) VALUES(%v);", tableName, strings.Join(names, ","), strings.Join(values, ","))
+			sqls = append(sqls, sql)
+
+			//result = append(result, row)
+		}
+		if len(sqls) > 0 {
+			dumpInfo[tableName] = sqls
+		}
+
+	}
+	return dumpInfo
+
+}
+
 func (u *DBUtil) Dump(db *sql.DB, tables []string, w io.Writer) {
 	var sqls []string
 	for _, table := range tables {
@@ -166,8 +231,8 @@ func (u *DBUtil) getStructSQL(rType reflect.Type, rValue reflect.Value, tableNam
 		for i := 0; i < rType.NumField(); i++ {
 			name, _ = u.getTagAttr(rType.Field(i), "gorm", "column")
 			if name == "" {
-				name=u.CamelCaseToUdnderscore( rType.Field(i).Name)
-				//name = rType.Field(i).Tag.Get("json")
+				//name=u.CamelCaseToUdnderscore( rType.Field(i).Name)
+				name = rType.Field(i).Tag.Get("json")
 			}
 			field = rValue.Field(i)
 			if rType.Field(i).Anonymous {
@@ -182,8 +247,8 @@ func (u *DBUtil) getStructSQL(rType reflect.Type, rValue reflect.Value, tableNam
 							//	continue
 							//}
 							//strings.Split(rValue.Field(i).Type().Field(j).Tag.Get("gorm"), ";")
-							//name = rValue.Field(i).Type().Field(j).Tag.Get("json")
-							name=u.CamelCaseToUdnderscore( rType.Field(i).Name)
+							name = rValue.Field(i).Type().Field(j).Tag.Get("json")
+							//name=u.CamelCaseToUdnderscore( rType.Field(i).Name)
 							if name == "" {
 								continue
 							}
