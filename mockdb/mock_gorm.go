@@ -213,7 +213,9 @@ func (m *MockGORM) DumpRecorderToSQL() []string {
 		for id := range set.Iter() {
 			ids = append(ids, fmt.Sprintf("%v", id))
 		}
-		sqls = append(sqls, fmt.Sprintf("select * from `%v` where id in (%v)", tableName, strings.Join(ids, ",")))
+		if len(ids) > 0 {
+			sqls = append(sqls, fmt.Sprintf("select * from `%v` where id in (%v)", tableName, strings.Join(ids, ",")))
+		}
 	}
 	return sqls
 }
