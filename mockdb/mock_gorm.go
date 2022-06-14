@@ -206,18 +206,19 @@ func (m *MockGORM) GetDBUtil() *util.DBUtil {
 	return m.util
 }
 
-func (m *MockGORM) DumpRecorderToSQL() []string {
-	var sqls []string
+func (m *MockGORM) DumpRecorderInfo() map[string][]string {
+	result := make(map[string][]string)
 	for tableName, set := range m.recorder {
 		var ids []string
 		for id := range set.Iter() {
 			ids = append(ids, fmt.Sprintf("%v", id))
 		}
 		if len(ids) > 0 {
-			sqls = append(sqls, fmt.Sprintf("select * from `%v` where id in (%v)", tableName, strings.Join(ids, ",")))
+			//sqls = append(sqls, fmt.Sprintf("select * from `%v` where id in (%v)", tableName, strings.Join(ids, ",")))
 		}
+		result[tableName] = ids
 	}
-	return sqls
+	return result
 }
 
 //func (m *MockGORM) Dump(w io.Writer) {
