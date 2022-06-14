@@ -3,12 +3,12 @@ package mockdb
 import (
 	"database/sql"
 	"fmt"
+	mapset "github.com/deckarep/golang-set"
 	"github.com/sjqzhang/gmock/util"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
-	"io"
 	"io/ioutil"
 	"net"
 	"os"
@@ -17,7 +17,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"xorm.io/xorm"
 )
 
 type MockGORMV2 struct {
@@ -31,7 +30,9 @@ type MockGORMV2 struct {
 	util              *util.DBUtil
 	resetHandler      func(resetHandler *MockGORMV2)
 	schema            string
-	dumper            *xorm.Engine
+	//dumper            *xorm.Engine
+	recorder   map[string]mapset.Set
+	recordLock sync.Mutex
 }
 
 func NewMockGORMV2(pathToSqlFileName string, resetHandler func(orm *MockGORMV2)) *MockGORMV2 {
@@ -39,7 +40,9 @@ func NewMockGORMV2(pathToSqlFileName string, resetHandler func(orm *MockGORMV2))
 		pathToSqlFileName: pathToSqlFileName,
 		models:            make([]interface{}, 0),
 		resetHandler:      resetHandler,
-		onceRecorder:      sync.Once{},
+		recorder:          make(map[string]mapset.Set),
+		recordLock:        sync.Mutex{},
+		//onceRecorder:      sync.Once{},
 	}
 	var err error
 	var db *gorm.DB
@@ -121,48 +124,92 @@ func (m *MockGORMV2) GetDBUtil() *util.DBUtil {
 	return m.util
 }
 
-func (m *MockGORMV2) Dump(w io.Writer) {
-	if m.dumper == nil {
-		logger.Error("must be call DoRecord first")
-		return
+func (m *MockGORMV2) DumpRecorderInfo() map[string][]string {
+	result := make(map[string][]string)
+	for tableName, set := range m.recorder {
+		var ids []string
+		for id := range set.Iter() {
+			ids = append(ids, fmt.Sprintf("%v", id))
+		}
+		if len(ids) > 0 {
+			//sqls = append(sqls, fmt.Sprintf("select * from `%v` where id in (%v)", tableName, strings.Join(ids, ",")))
+			result[tableName] = ids
+		}
+
 	}
-	m.dumper.DumpAll(w)
-	m.dumper.Close()
-	os.Remove(".mock.db")
+	return result
 }
 
 func (m *MockGORMV2) DoRecord(scope *gorm.DB) {
-	m.onceRecorder.Do(func() {
-		var err error
-		//m.util.RunMySQLServer("mock", 63344, false)
-		ns := schema.NamingStrategy{
-			SingularTable: true,
+	defer func() {
+		if err := recover(); err != nil {
+			logger.Error(fmt.Sprintf("%v", err))
 		}
-		dsn := ".mock.db"
-		m.dbRecorder, err = gorm.Open(sqlite.Open(dsn), &gorm.Config{NamingStrategy: ns})
-		m.dumper, err = xorm.NewEngine("sqlite3", ".mock.db")
-		if err != nil {
-			logger.Error(err)
-			panic(err)
-		}
-	})
+	}()
 
-	model := reflect.New(scope.Statement.Schema.ModelType).Interface()
-	//m.RegisterModels(model)
-	m.db.AutoMigrate(model)
+	m.recordLock.Lock()
+	defer m.recordLock.Unlock()
+	tableName := scope.Statement.Table
+	if tableName == "" {
+		return
+	}
+	if _, ok := m.recorder[tableName]; !ok {
+		m.recorder[tableName] = mapset.NewSet()
+	}
+
+	//model := reflect.New(scope.GetModelStruct().ModelType).Interface()
+	////m.RegisterModels(model)
+	//m.dumper.Sync2(model)
+	//m.dbRecorder.AutoMigrate(model)
 	rValue := reflect.ValueOf(scope.Statement.Model)
 	if rValue.Kind() == reflect.Ptr {
 		rValue = rValue.Elem()
 	}
+	id := ""
 	if rValue.Kind() == reflect.Slice || rValue.Kind() == reflect.Array {
+		if rValue.Len() == 0 {
+			return
+		}
+		item := rValue.Index(0)
+		if item.Kind() == reflect.Ptr {
+			item = item.Elem()
+		}
+		if item.Kind() != reflect.Struct {
+			return
+		}
+		for i := 0; i < item.NumField(); i++ {
+			id = item.Type().Field(i).Name
+			if id == "id" || id == "ID" || id == "Id" {
+				break
+			}
+		}
+		if id == "" {
+			return
+		}
 		for i := 0; i < rValue.Len(); i++ {
-			m.dbRecorder.Create(rValue.Index(i).Interface())
+			//m.dbRecorder.Create(rValue.Index(i).Interface())
+			item := rValue.Index(i)
+			if item.Kind() == reflect.Ptr {
+				item = item.Elem()
+			}
+			m.recorder[tableName].Add(item.FieldByName(id).Interface())
 		}
 		return
 	}
 	if rValue.Kind() == reflect.Struct {
-		m.dbRecorder.Create(rValue.Interface())
+		for i := 0; i < rValue.NumField(); i++ {
+			id = rValue.Type().Field(i).Name
+			if id == "id" || id == "ID" || id == "Id" {
+				break
+			}
+		}
+		if id == "" {
+			return
+		}
+		m.recorder[tableName].Add(rValue.FieldByName(id).Interface())
+		//m.dbRecorder.Create(rValue.Interface())
 	}
+	//scope.HasColumn("id") || scope
 }
 func (m *MockGORMV2) InitSchemas(sqlSchema string) {
 	m.schema = sqlSchema
