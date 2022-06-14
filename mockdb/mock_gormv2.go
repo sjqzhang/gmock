@@ -245,7 +245,8 @@ func (m *MockGORMV2) initModels() {
 		panic("warning: call ResetAndInit func first!!!!!")
 	}
 	for _, model := range m.models {
-		err := m.db.AutoMigrate(model)
+
+		err := m.db.Debug().AutoMigrate(model)
 		if err != nil {
 			panic(err)
 		}

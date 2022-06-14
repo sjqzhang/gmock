@@ -99,11 +99,19 @@ func (u *DBUtil) SaveRecordToFile(dir string, recorder map[string][]string) {
 	}
 	for tableName, sqls := range recorder {
 		data := strings.Join(sqls, "\n")
-		ioutil.WriteFile(fmt.Sprintf("%v/%v.sql", dir, tableName), []byte(data), 0755)
+		filePath := fmt.Sprintf("%v/%v.sql", dir, tableName)
+		if _, err := os.Stat(filePath); err != nil {
+			ioutil.WriteFile(fmt.Sprintf("%v/%v.sql", dir, tableName), []byte(data), 0755)
+		}
 	}
 }
 
 func (u *DBUtil) DumpFromRecordInfo(db *sql.DB, recorder map[string][]string) map[string][]string {
+	defer func() {
+		if err := recover(); err != nil {
+			Log.Error(fmt.Sprintf("%v", err))
+		}
+	}()
 	dumpInfo := make(map[string][]string)
 	for tableName, ids := range recorder {
 		sqlStr := fmt.Sprintf("select * from `%v` where id in (%v)", tableName, strings.Join(ids, ","))
@@ -141,15 +149,32 @@ func (u *DBUtil) DumpFromRecordInfo(db *sql.DB, recorder map[string][]string) ma
 
 			for i, c := range cys {
 				names = append(names, c.Name())
-				switch c.DatabaseTypeName() {
-				// Common type names include "VARCHAR", "TEXT", "NVARCHAR", "DECIMAL", "BOOL",
-				// "INT", and "BIGINT".
-				case "VARCHAR", "TEXT", "NVARCHAR":
-					v := fmt.Sprintf("%v", convertToStr(vals[i].([]uint8)))
-					v = strings.Replace(v, "'", "\\'", -1)
-					values = append(values, fmt.Sprintf("'%v'", v))
-				default:
-					values = append(values, fmt.Sprintf("%v", convertToStr(vals[i].([]uint8))))
+				if vals[i] == nil {
+					values = append(values, "NULL")
+					continue
+				}
+				v := reflect.ValueOf(vals[i])
+				if v.Kind() == reflect.Slice {
+					switch c.DatabaseTypeName() {
+					// Common type names include "VARCHAR", "TEXT", "NVARCHAR", "DECIMAL", "BOOL",
+					// "INT", and "BIGINT".
+					case "VARCHAR", "TEXT", "NVARCHAR":
+						v := fmt.Sprintf("%v", convertToStr(vals[i].([]uint8)))
+						v = strings.Replace(v, "'", "\\'", -1)
+						values = append(values, fmt.Sprintf("'%v'", v))
+					default:
+						values = append(values, fmt.Sprintf("%v", convertToStr(vals[i].([]uint8))))
+					}
+				} else {
+					switch vals[i].(type) {
+
+					case string:
+						values = append(values, fmt.Sprintf("'%v'", v))
+					case int64, float64, int32, int16, int8, float32:
+						values = append(values, fmt.Sprintf("%v", vals[i]))
+					default:
+						values = append(values, fmt.Sprintf("'%v'", strings.Replace(fmt.Sprintf("%v", vals[i]), "'", "\\'", -1)))
+					}
 				}
 
 			}
