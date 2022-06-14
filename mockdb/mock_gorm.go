@@ -304,7 +304,9 @@ func (m *MockGORM) DoRecord(scope *gorm.Scope) {
 	}
 	id:=""
 	if rValue.Kind() == reflect.Slice || rValue.Kind() == reflect.Array {
-
+		if rValue.Len()==0 {
+			return
+		}
 		for i := 0; i < rValue.Index(0).NumField(); i++ {
 			id=rValue.Index(0).Type().Field(i).Name
 			if id=="id" || id=="ID" || id=="Id" {
