@@ -3,11 +3,11 @@ package mockdb
 import (
 	"database/sql"
 	"fmt"
+	mapset "github.com/deckarep/golang-set"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
 	"github.com/mattn/go-sqlite3"
 	"github.com/sjqzhang/gmock/util"
-	"io"
 	"io/ioutil"
 	"log"
 	"net"
@@ -18,7 +18,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"xorm.io/xorm"
 )
 
 var DBType string = "sqlite3"
@@ -32,9 +31,11 @@ type MockGORM struct {
 	util              *util.DBUtil
 	models            []interface{}
 	resetHandler      func(orm *MockGORM)
-	dbRecorder        *gorm.DB
-	onceRecorder      sync.Once
-	dumper            *xorm.Engine
+	//dbRecorder        *gorm.DB
+	//onceRecorder      sync.Once
+	//dumper            *xorm.Engine
+	recorder   map[string]mapset.Set
+	recordLock sync.Mutex
 }
 type Logger struct {
 	tag string
@@ -68,7 +69,9 @@ func NewMockGORM(pathToSqlFileName string, resetHandler func(orm *MockGORM)) *Mo
 		pathToSqlFileName: pathToSqlFileName,
 		models:            make([]interface{}, 0),
 		resetHandler:      resetHandler,
-		onceRecorder:      sync.Once{},
+		recorder:          make(map[string]mapset.Set),
+		recordLock: sync.Mutex{},
+		//onceRecorder:      sync.Once{},
 	}
 	var err error
 	var db *gorm.DB
@@ -203,52 +206,134 @@ func (m *MockGORM) GetDBUtil() *util.DBUtil {
 	return m.util
 }
 
-func (m *MockGORM) Dump(w io.Writer) {
-	if m.dumper == nil {
-		logger.Error("must be call DoRecord first")
-		return
+func (m *MockGORM) DumpRecorderToSQL() []string {
+	var sqls []string
+	for tableName,set:=range m.recorder {
+		var ids []string
+		for id:=range set.Iter() {
+           ids=append(ids,fmt.Sprintf("%v",id))
+		}
+      sqls=append(sqls,fmt.Sprintf("select * from `%v` where id in (%v)",tableName,strings.Join(ids,",")))
 	}
-	m.dumper.DumpAll(w)
-	m.dumper.Close()
-	m.dbRecorder.Close()
-	os.Remove(".mock.db")
+	return sqls
 }
+
+//func (m *MockGORM) Dump(w io.Writer) {
+//	if m.dumper == nil {
+//		logger.Error("must be call DoRecord first")
+//		return
+//	}
+//	m.dumper.DumpAll(w)
+//	m.dumper.Close()
+//	m.dbRecorder.Close()
+//	os.Remove(".mock.db")
+//}
+
+//func (m *MockGORM) DoRecord(scope *gorm.Scope) {
+//
+//	m.onceRecorder.Do(func() {
+//		var err error
+//		if m.dbType == "mysql" {
+//			t, dsn := m.GetDSN()
+//			m.dbRecorder, err = gorm.Open(t, dsn)
+//		} else {
+//			m.dbRecorder, err = gorm.Open("sqlite3", ".mock.db")
+//		}
+//		m.dbRecorder.SingularTable(true)
+//		m.dumper, err = xorm.NewEngine("sqlite3", ".mock.db")
+//		if err != nil {
+//			logger.Error(err)
+//			panic(err)
+//		}
+//	})
+//
+//	model := reflect.New(scope.GetModelStruct().ModelType).Interface()
+//	//m.RegisterModels(model)
+//	m.dumper.Sync2(model)
+//	m.dbRecorder.AutoMigrate(model)
+//	rValue := reflect.ValueOf(scope.Value)
+//	if rValue.Kind() == reflect.Ptr {
+//		rValue = rValue.Elem()
+//	}
+//	if rValue.Kind() == reflect.Slice || rValue.Kind() == reflect.Array {
+//		for i := 0; i < rValue.Len(); i++ {
+//			m.dbRecorder.Create(rValue.Index(i).Interface())
+//		}
+//		return
+//	}
+//	if rValue.Kind() == reflect.Struct {
+//		m.dbRecorder.Create(rValue.Interface())
+//	}
+//}
 
 func (m *MockGORM) DoRecord(scope *gorm.Scope) {
 
-	m.onceRecorder.Do(func() {
-		var err error
-		if m.dbType == "mysql" {
-			t, dsn := m.GetDSN()
-			m.dbRecorder, err = gorm.Open(t, dsn)
-		} else {
-			m.dbRecorder, err = gorm.Open("sqlite3", ".mock.db")
-		}
-		m.dbRecorder.SingularTable(true)
-		m.dumper, err = xorm.NewEngine("sqlite3", ".mock.db")
-		if err != nil {
-			logger.Error(err)
-			panic(err)
-		}
-	})
+	//m.onceRecorder.Do(func() {
+	//	var err error
+	//	if m.dbType == "mysql" {
+	//		t, dsn := m.GetDSN()
+	//		m.dbRecorder, err = gorm.Open(t, dsn)
+	//	} else {
+	//		m.dbRecorder, err = gorm.Open("sqlite3", ".mock.db")
+	//	}
+	//	m.dbRecorder.SingularTable(true)
+	//	m.dumper, err = xorm.NewEngine("sqlite3", ".mock.db")
+	//	if err != nil {
+	//		logger.Error(err)
+	//		panic(err)
+	//	}
+	//})
 
-	model := reflect.New(scope.GetModelStruct().ModelType).Interface()
-	//m.RegisterModels(model)
-	m.dumper.Sync2(model)
-	m.dbRecorder.AutoMigrate(model)
+	m.recordLock.Lock()
+	defer m.recordLock.Unlock()
+	tableName:=scope.TableName()
+	if tableName=="" {
+		return
+	}
+	if _,ok:= m.recorder[tableName];!ok {
+		m.recorder[tableName]=mapset.NewSet()
+	}
+
+	//model := reflect.New(scope.GetModelStruct().ModelType).Interface()
+	////m.RegisterModels(model)
+	//m.dumper.Sync2(model)
+	//m.dbRecorder.AutoMigrate(model)
 	rValue := reflect.ValueOf(scope.Value)
 	if rValue.Kind() == reflect.Ptr {
 		rValue = rValue.Elem()
 	}
+	id:=""
 	if rValue.Kind() == reflect.Slice || rValue.Kind() == reflect.Array {
+
+		for i := 0; i < rValue.Index(0).NumField(); i++ {
+			id=rValue.Index(0).Type().Field(i).Name
+			if id=="id" || id=="ID" || id=="Id" {
+				break
+			}
+		}
+		if id=="" {
+			return
+		}
 		for i := 0; i < rValue.Len(); i++ {
-			m.dbRecorder.Create(rValue.Index(i).Interface())
+			//m.dbRecorder.Create(rValue.Index(i).Interface())
+			m.recorder[tableName].Add(rValue.Index(i).FieldByName(id).Interface())
 		}
 		return
 	}
 	if rValue.Kind() == reflect.Struct {
-		m.dbRecorder.Create(rValue.Interface())
+		for i := 0; i < rValue.NumField(); i++ {
+			id=rValue.Type().Field(i).Name
+			if id=="id" || id=="ID" || id=="Id" {
+				break
+			}
+		}
+		if id=="" {
+			return
+		}
+		m.recorder[tableName].Add(rValue.FieldByName(id).Interface())
+		//m.dbRecorder.Create(rValue.Interface())
 	}
+	//scope.HasColumn("id") || scope
 }
 
 // RegisterModels 注册模型
