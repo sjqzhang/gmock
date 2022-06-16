@@ -33,6 +33,7 @@ func NewDBUtil() *DBUtil {
 var regSelect = regexp.MustCompile(`(?i)^select`)
 
 func (u *DBUtil) SelectToInsertSQLV1(scope *gorm.Scope) (string, []string) {
+	defer Recover()
 	var sqls []string
 	rValue := reflect.ValueOf(scope.Value)
 	rType := scope.GetModelStruct().ModelType
@@ -106,12 +107,10 @@ func (u *DBUtil) SaveRecordToFile(dir string, recorder map[string][]string) {
 	}
 }
 
+
+
 func (u *DBUtil) DumpFromRecordInfo(db *sql.DB, recorder map[string][]string) map[string][]string {
-	defer func() {
-		if err := recover(); err != nil {
-			Log.Error(fmt.Sprintf("%v", err))
-		}
-	}()
+	defer Recover()
 	dumpInfo := make(map[string][]string)
 	for tableName, ids := range recorder {
 		sqlStr := fmt.Sprintf("select * from `%v` where id in (%v)", tableName, strings.Join(ids, ","))
@@ -338,6 +337,7 @@ func (u *DBUtil) getStructSQL(rType reflect.Type, rValue reflect.Value, tableNam
 }
 
 func (u *DBUtil) SelectToInsertSQLV2(db *gormv2.DB) (string, []string) {
+	defer Recover()
 	var sqls []string
 	rType := db.Statement.Schema.ModelType
 	rValue := reflect.ValueOf(db.Statement.Model)
