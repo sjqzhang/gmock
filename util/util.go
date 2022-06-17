@@ -2,6 +2,7 @@ package util
 
 import (
 	"fmt"
+	"github.com/sjqzhang/goutil"
 	"log"
 	"os"
 	"runtime"
@@ -33,14 +34,16 @@ func (l *logger) Panic(msg interface{}) {
 	panic("\u001B[31m" + fmt.Sprintf("%v", msg) + "\u001B[0m")
 }
 
-var Log *logger = NewLogger("default")
+var Logger *logger = NewLogger("default")
 
 func Recover() {
 	if err := recover(); err != nil {
 		_, file, line, ok := runtime.Caller(3)
 		if ok {
 			errMsg := fmt.Sprintf("[%s] panic file:[%s:%v] recovered:\n%s\n%s", "gmock", file, line, err, string(debug.Stack()))
-			Log.Error(errMsg)
+			Logger.Error(errMsg)
 		}
 	}
 }
+
+var Util *goutil.Common = &goutil.Common{}

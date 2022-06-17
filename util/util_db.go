@@ -94,7 +94,7 @@ func (u *DBUtil) SaveRecordToFile(dir string, recorder map[string][]string) {
 	if err != nil {
 		err = os.MkdirAll(dir, 0755)
 		if err != nil {
-			Log.Error(fmt.Sprintf("%v", err))
+			Logger.Error(fmt.Sprintf("%v", err))
 			return
 		}
 	}
@@ -119,13 +119,13 @@ func (u *DBUtil) DumpFromRecordInfo(db *sql.DB, recorder map[string][]string) ma
 		sqlStr := fmt.Sprintf("select * from `%v` where id in (%v)", tableName, strings.Join(ids, ","))
 		rows, err := db.Query(sqlStr)
 		if err != nil {
-			Log.Error(err)
+			Logger.Error(err)
 			continue
 		}
 		defer rows.Close()
 		cys, err := rows.ColumnTypes()
 		if err != nil {
-			Log.Error(err)
+			Logger.Error(err)
 			continue
 		}
 		var sqls []string
