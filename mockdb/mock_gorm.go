@@ -270,6 +270,10 @@ func (m *MockGORM) DumpRecorderInfo() map[string][]string {
 //	}
 //}
 
+func (m *MockGORM) SaveRecordToFile(db *sql.DB, dir string) {
+	m.util.SaveRecordToFile(dir, m.util.DumpFromRecordInfo(db, m.DumpRecorderInfo()))
+}
+
 func (m *MockGORM) DoRecord(scope *gorm.Scope) {
 	defer func() {
 		if err := recover(); err != nil {
@@ -308,8 +312,14 @@ func (m *MockGORM) DoRecord(scope *gorm.Scope) {
 	//m.dumper.Sync2(model)
 	//m.dbRecorder.AutoMigrate(model)
 	rValue := reflect.ValueOf(scope.Value)
+	if !rValue.IsValid() {
+		return
+	}
 	if rValue.Kind() == reflect.Ptr {
 		rValue = rValue.Elem()
+		if !rValue.IsValid() {
+			return
+		}
 	}
 	id := ""
 	if rValue.Kind() == reflect.Slice || rValue.Kind() == reflect.Array {
@@ -335,10 +345,15 @@ func (m *MockGORM) DoRecord(scope *gorm.Scope) {
 		for i := 0; i < rValue.Len(); i++ {
 			//m.dbRecorder.Create(rValue.Index(i).Interface())
 			item := rValue.Index(i)
-			if item.Kind() == reflect.Ptr {
+			if item.IsValid() && item.Kind() == reflect.Ptr {
 				item = item.Elem()
 			}
-			m.recorder[tableName].Add(item.FieldByName(id).Interface())
+			if item.IsValid() && item.FieldByName(id).Kind() == reflect.Ptr {
+				m.recorder[tableName].Add(item.FieldByName(id).Elem().Interface())
+			} else {
+				m.recorder[tableName].Add(item.FieldByName(id).Interface())
+			}
+
 		}
 		return
 	}
@@ -352,7 +367,15 @@ func (m *MockGORM) DoRecord(scope *gorm.Scope) {
 		if id == "" {
 			return
 		}
-		m.recorder[tableName].Add(rValue.FieldByName(id).Interface())
+		if !rValue.FieldByName(id).IsValid() {
+			return
+		}
+		if rValue.FieldByName(id).Kind() == reflect.Ptr {
+			m.recorder[tableName].Add(rValue.FieldByName(id).Elem().Interface())
+		} else {
+			m.recorder[tableName].Add(rValue.FieldByName(id).Interface())
+		}
+
 		//m.dbRecorder.Create(rValue.Interface())
 	}
 	//scope.HasColumn("id") || scope
