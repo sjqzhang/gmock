@@ -107,22 +107,25 @@ func (u *DBUtil) SaveRecordToFile(dir string, recorder map[string][]string) {
 	}
 }
 
-
-
 func (u *DBUtil) DumpFromRecordInfo(db *sql.DB, recorder map[string][]string) map[string][]string {
 	defer Recover()
 	dumpInfo := make(map[string][]string)
 	for tableName, ids := range recorder {
+		for i, id := range ids {
+			if !strings.HasSuffix(id, "'") {
+				ids[i] = fmt.Sprintf("'%v'", id)
+			}
+		}
 		sqlStr := fmt.Sprintf("select * from `%v` where id in (%v)", tableName, strings.Join(ids, ","))
 		rows, err := db.Query(sqlStr)
 		if err != nil {
-			log.Println(err)
+			Log.Error(err)
 			continue
 		}
 		defer rows.Close()
 		cys, err := rows.ColumnTypes()
 		if err != nil {
-			log.Println(err)
+			Log.Error(err)
 			continue
 		}
 		var sqls []string
