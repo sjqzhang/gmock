@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	mapset "github.com/deckarep/golang-set"
 	sqle "github.com/dolthub/go-mysql-server"
 	"github.com/dolthub/go-mysql-server/auth"
 	"github.com/dolthub/go-mysql-server/memory"
@@ -107,6 +108,78 @@ func (u *DBUtil) SaveRecordToFile(dir string, recorder map[string][]string) {
 	}
 }
 
+func (u *DBUtil) DoRecordQueryTableIds(db *sql.DB, recorder map[string]mapset.Set, sql string, args []interface{}) {
+	defer Recover()
+	exp := regexp.MustCompile("(?i)select[\\s\\S]+\\sfrom\\s+([\\w\\-\\.\\`]+?)\\s+(where\\s+[\\s\\S]+)")
+	tables := exp.FindStringSubmatch(sql)
+	tableName := ""
+	if len(tables) <= 2 {
+		log.Println(sql)
+		return
+	}
+	tableName = tables[1]
+	if _, ok := recorder[tableName]; !ok {
+		recorder[tableName] = mapset.NewSet()
+	}
+
+	rows, err := db.Query(sql, args...)
+	if err != nil {
+		Logger.Error(err)
+		return
+	}
+	defer rows.Close()
+	cys, err := rows.ColumnTypes()
+	if err != nil {
+		Logger.Error(err)
+		return
+	}
+
+	for rows.Next() {
+		//var names []string
+		//var values []string
+		l := len(cys)
+		vals := make([]interface{}, l)
+		valPtr := make([]interface{}, l)
+		for i, _ := range vals {
+			valPtr[i] = &vals[i]
+		}
+		//row := make(map[string]interface{}, l)
+		rows.Scan(valPtr...)
+
+		convertToStr := func(origin []uint8) string {
+			var bs []byte
+			for _, b := range origin {
+				bs = append(bs, b)
+			}
+			return string(bs)
+		}
+
+		for i, c := range cys {
+			if strings.ToUpper(c.Name()) == "ID" {
+				v := reflect.ValueOf(vals[i])
+				if v.Kind() == reflect.Slice {
+					id := fmt.Sprintf("%v", convertToStr(vals[i].([]uint8)))
+					recorder[tableName].Add(id)
+				} else {
+					id := ""
+					switch vals[i].(type) {
+
+					case string:
+						id = fmt.Sprintf("'%v'", v)
+					case int64, float64, int32, int16, int8, float32:
+						id = fmt.Sprintf("%v", vals[i])
+					default:
+						id = fmt.Sprintf("'%v'", strings.Replace(fmt.Sprintf("%v", vals[i]), "'", "\\'", -1))
+					}
+					recorder[tableName].Add(id)
+				}
+			}
+		}
+
+	}
+
+}
+
 func (u *DBUtil) DumpFromRecordInfo(db *sql.DB, recorder map[string][]string) map[string][]string {
 	defer Recover()
 	dumpInfo := make(map[string][]string)
@@ -116,6 +189,7 @@ func (u *DBUtil) DumpFromRecordInfo(db *sql.DB, recorder map[string][]string) ma
 				ids[i] = fmt.Sprintf("'%v'", id)
 			}
 		}
+		tableName=strings.Replace(tableName,"`","",-1)
 		sqlStr := fmt.Sprintf("select * from `%v` where id in (%v)", tableName, strings.Join(ids, ","))
 		rows, err := db.Query(sqlStr)
 		if err != nil {

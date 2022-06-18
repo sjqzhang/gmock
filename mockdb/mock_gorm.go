@@ -34,8 +34,9 @@ type MockGORM struct {
 	//dbRecorder        *gorm.DB
 	//onceRecorder      sync.Once
 	//dumper            *xorm.Engine
-	recorder   map[string]mapset.Set
-	recordLock sync.Mutex
+	recorder      map[string]mapset.Set
+	recorderSQLDB *sql.DB
+	recordLock    sync.Mutex
 }
 type Logger struct {
 	tag string
@@ -186,6 +187,11 @@ func (m *MockGORM) GetGormDB() *gorm.DB {
 	return m.db
 }
 
+// GetGormDB 获取Gorm实例
+func (m *MockGORM) SetGormDB(db *gorm.DB) {
+	m.db = db
+}
+
 // GetSqlDB  获取*sql.DB实例
 func (m *MockGORM) GetSqlDB() *sql.DB {
 	return m.db.DB()
@@ -270,8 +276,8 @@ func (m *MockGORM) DumpRecorderInfo() map[string][]string {
 //	}
 //}
 
-func (m *MockGORM) SaveRecordToFile(db *sql.DB, dir string) {
-	m.util.SaveRecordToFile(dir, m.util.DumpFromRecordInfo(db, m.DumpRecorderInfo()))
+func (m *MockGORM) SaveRecordToFile(dir string) {
+	m.util.SaveRecordToFile(dir, m.util.DumpFromRecordInfo(m.recorderSQLDB, m.DumpRecorderInfo()))
 }
 
 func (m *MockGORM) DoRecord(scope *gorm.Scope) {
@@ -296,6 +302,10 @@ func (m *MockGORM) DoRecord(scope *gorm.Scope) {
 	//		panic(err)
 	//	}
 	//})
+
+	if m.recorderSQLDB == nil {
+		m.recorderSQLDB = scope.DB().DB()
+	}
 
 	m.recordLock.Lock()
 	defer m.recordLock.Unlock()

@@ -1,8 +1,10 @@
 package mockdb
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
+	mapset "github.com/deckarep/golang-set"
 	"github.com/mattn/go-sqlite3"
 	"github.com/sjqzhang/gmock/util"
 	"io/ioutil"
@@ -11,8 +13,10 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 	"xorm.io/xorm"
+	"xorm.io/xorm/contexts"
 )
 
 type MockXORM struct {
@@ -24,7 +28,11 @@ type MockXORM struct {
 	dbType       string
 	dsn          string
 	resetHandler func(orm *MockXORM)
-	schema       string
+	once         sync.Once
+	hook         *hook
+	//mock         *MockGORM
+	recorder map[string]mapset.Set
+	schema   string
 }
 
 func NewMockXORM(pathToSqlFileName string, resetHandler func(orm *MockXORM)) *MockXORM {
@@ -35,6 +43,8 @@ func NewMockXORM(pathToSqlFileName string, resetHandler func(orm *MockXORM)) *Mo
 		engine:            db,
 		models:            make([]interface{}, 0),
 		resetHandler:      resetHandler,
+		recorder:          make(map[string]mapset.Set),
+		once:              sync.Once{},
 	}
 	if DBType == "mysql" {
 		for i := 63306; i < 63400; i++ {
@@ -116,6 +126,10 @@ func (m *MockXORM) GetXORMEngine() *xorm.Engine {
 	return m.engine
 }
 
+func (m *MockXORM) SetXORMEngine(engine *xorm.Engine) {
+	m.engine = engine
+}
+
 // GetSqlDB  获取*sql.DB实例
 func (m *MockXORM) GetSqlDB() *sql.DB {
 	return m.engine.DB().DB
@@ -129,6 +143,72 @@ func (m *MockXORM) GetDSN() (dbType string, dsn string) {
 
 func (m *MockXORM) GetDBUtil() *util.DBUtil {
 	return m.util
+}
+
+type hook struct {
+	m *MockXORM
+}
+
+func (h *hook) BeforeProcess(c *contexts.ContextHook) (context.Context, error) {
+
+	return c.Ctx, nil
+}
+
+func (h *hook) AfterProcess(c *contexts.ContextHook) error {
+
+	sql := strings.TrimSpace(strings.ToUpper(c.SQL))
+	if strings.HasPrefix(sql, "SELECT") {
+		h.m.GetDBUtil().DoRecordQueryTableIds(h.m.GetSqlDB(), h.m.recorder,c.SQL, c.Args)
+	}
+	return nil
+}
+
+func (m *MockXORM) DumpRecorderInfo() map[string][]string {
+	result := make(map[string][]string)
+	for tableName, set := range m.recorder {
+		var ids []string
+		for id := range set.Iter() {
+			ids = append(ids, fmt.Sprintf("%v", id))
+		}
+		if len(ids) > 0 {
+			//sqls = append(sqls, fmt.Sprintf("select * from `%v` where id in (%v)", tableName, strings.Join(ids, ",")))
+			result[tableName] = ids
+		}
+
+	}
+	return result
+}
+
+func (m *MockXORM) SaveRecordToFile(dir string) {
+
+	m.util.SaveRecordToFile(dir, m.util.DumpFromRecordInfo(m.engine.DB().DB,m.DumpRecorderInfo()))
+}
+
+
+func (m *MockXORM) DoRecord(scope *xorm.Engine) {
+	defer func() {
+		if err := recover(); err != nil {
+			logger.Error(fmt.Sprintf("%v", err))
+		}
+	}()
+	m.once.Do(func() {
+		scope.DriverName()
+		m.hook = &hook{m: m}
+		//m.mock = NewMockGORM("", nil)
+		//db, err := gorm.Open(scope.DriverName(), scope.DataSourceName())
+		//if err != nil {
+		//	logger.Error(err)
+		//	panic(err)
+		//}
+		////m.mock.SetGormDB(db)
+		//db.Callback().Query().After("gorm:after").Register("xxx:xxxx", func(scope *gorm.Scope) {
+		//	m.mock.DoRecord(scope)
+		//})
+		//db.SingularTable(true)
+		m.SetXORMEngine(scope)
+		scope.DB().AddHook(m.hook)
+	})
+
 }
 
 // RegisterModels 注册模型
