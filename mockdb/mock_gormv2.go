@@ -31,8 +31,9 @@ type MockGORMV2 struct {
 	resetHandler      func(resetHandler *MockGORMV2)
 	schema            string
 	//dumper            *xorm.Engine
-	recorder   map[string]mapset.Set
-	recordLock sync.Mutex
+	recorder      map[string]mapset.Set
+	recorderSQLDB *sql.DB
+	recordLock    sync.Mutex
 }
 
 func NewMockGORMV2(pathToSqlFileName string, resetHandler func(orm *MockGORMV2)) *MockGORMV2 {
@@ -109,6 +110,11 @@ func (m *MockGORMV2) ResetAndInit() {
 func (m *MockGORMV2) GetGormDB() *gorm.DB {
 	return m.db
 }
+
+func (m *MockGORMV2) SetGormDB(db *gorm.DB) {
+	m.db = db
+}
+
 func (m *MockGORMV2) dropTables() {
 	for _, model := range m.models {
 		m.db.Migrator().DropTable(model)
@@ -124,8 +130,8 @@ func (m *MockGORMV2) GetDBUtil() *util.DBUtil {
 	return m.util
 }
 
-func (m *MockGORMV2) SaveRecordToFile(db *sql.DB, dir string) {
-	m.util.SaveRecordToFile(dir, m.util.DumpFromRecordInfo(db, m.DumpRecorderInfo()))
+func (m *MockGORMV2) SaveRecordToFile(dir string) {
+	m.util.SaveRecordToFile(dir, m.util.DumpFromRecordInfo(m.recorderSQLDB, m.DumpRecorderInfo()))
 }
 
 func (m *MockGORMV2) DumpRecorderInfo() map[string][]string {
@@ -150,6 +156,10 @@ func (m *MockGORMV2) DoRecord(scope *gorm.DB) {
 			logger.Error(fmt.Sprintf("%v", err))
 		}
 	}()
+
+	if m.recorderSQLDB == nil {
+		m.recorderSQLDB, _ = scope.DB()
+	}
 
 	m.recordLock.Lock()
 	defer m.recordLock.Unlock()
