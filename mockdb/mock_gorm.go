@@ -188,9 +188,9 @@ func (m *MockGORM) GetGormDB() *gorm.DB {
 }
 
 // GetGormDB 获取Gorm实例
-func (m *MockGORM) SetGormDB(db *gorm.DB) {
-	m.db = db
-}
+//func (m *MockGORM) SetGormDB(db *gorm.DB) {
+//	m.db = db
+//}
 
 // GetSqlDB  获取*sql.DB实例
 func (m *MockGORM) GetSqlDB() *sql.DB {

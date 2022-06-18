@@ -111,9 +111,9 @@ func (m *MockGORMV2) GetGormDB() *gorm.DB {
 	return m.db
 }
 
-func (m *MockGORMV2) SetGormDB(db *gorm.DB) {
-	m.db = db
-}
+//func (m *MockGORMV2) SetGormDB(db *gorm.DB) {
+//	m.db = db
+//}
 
 func (m *MockGORMV2) dropTables() {
 	for _, model := range m.models {

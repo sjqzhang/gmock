@@ -31,8 +31,9 @@ type MockXORM struct {
 	once         sync.Once
 	hook         *hook
 	//mock         *MockGORM
-	recorder map[string]mapset.Set
-	schema   string
+	recorderSQLDB *sql.DB
+	recorder      map[string]mapset.Set
+	schema        string
 }
 
 func NewMockXORM(pathToSqlFileName string, resetHandler func(orm *MockXORM)) *MockXORM {
@@ -126,9 +127,9 @@ func (m *MockXORM) GetXORMEngine() *xorm.Engine {
 	return m.engine
 }
 
-func (m *MockXORM) SetXORMEngine(engine *xorm.Engine) {
-	m.engine = engine
-}
+//func (m *MockXORM) SetXORMEngine(engine *xorm.Engine) {
+//	m.engine = engine
+//}
 
 // GetSqlDB  获取*sql.DB实例
 func (m *MockXORM) GetSqlDB() *sql.DB {
@@ -158,7 +159,7 @@ func (h *hook) AfterProcess(c *contexts.ContextHook) error {
 
 	sql := strings.TrimSpace(strings.ToUpper(c.SQL))
 	if strings.HasPrefix(sql, "SELECT") {
-		h.m.GetDBUtil().DoRecordQueryTableIds(h.m.GetSqlDB(), h.m.recorder,c.SQL, c.Args)
+		h.m.GetDBUtil().DoRecordQueryTableIds(h.m.GetSqlDB(), h.m.recorder, c.SQL, c.Args)
 	}
 	return nil
 }
@@ -181,9 +182,8 @@ func (m *MockXORM) DumpRecorderInfo() map[string][]string {
 
 func (m *MockXORM) SaveRecordToFile(dir string) {
 
-	m.util.SaveRecordToFile(dir, m.util.DumpFromRecordInfo(m.engine.DB().DB,m.DumpRecorderInfo()))
+	m.util.SaveRecordToFile(dir, m.util.DumpFromRecordInfo(m.recorderSQLDB, m.DumpRecorderInfo()))
 }
-
 
 func (m *MockXORM) DoRecord(scope *xorm.Engine) {
 	defer func() {
@@ -205,7 +205,10 @@ func (m *MockXORM) DoRecord(scope *xorm.Engine) {
 		//	m.mock.DoRecord(scope)
 		//})
 		//db.SingularTable(true)
-		m.SetXORMEngine(scope)
+		//m.SetXORMEngine(scope)
+		if m.recorderSQLDB == nil {
+			m.recorderSQLDB = scope.DB().DB
+		}
 		scope.DB().AddHook(m.hook)
 	})
 
