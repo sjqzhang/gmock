@@ -150,7 +150,13 @@ func (m *MockGORMV2) DumpRecorderInfo() map[string][]string {
 	return result
 }
 
-func (m *MockGORMV2) DoRecord(scope *gorm.DB) {
+func (m *MockGORMV2) DoRecord(db *gorm.DB) {
+	db.Callback().Query().After("gorm:query").Register("gmock:record", func(scope *gorm.DB) {
+		m.doRecord(scope)
+	})
+}
+
+func (m *MockGORMV2) doRecord(scope *gorm.DB) {
 	defer func() {
 		if err := recover(); err != nil {
 			logger.Error(fmt.Sprintf("%v", err))

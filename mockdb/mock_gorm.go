@@ -280,7 +280,13 @@ func (m *MockGORM) SaveRecordToFile(dir string) {
 	m.util.SaveRecordToFile(dir, m.util.DumpFromRecordInfo(m.recorderSQLDB, m.DumpRecorderInfo()))
 }
 
-func (m *MockGORM) DoRecord(scope *gorm.Scope) {
+func (m *MockGORM) DoRecord(db *gorm.DB) {
+	db.Callback().Query().After("gorm:query").Register("gmock:record", func(scope *gorm.Scope) {
+		m.doRecord(scope)
+	})
+}
+
+func (m *MockGORM) doRecord(scope *gorm.Scope) {
 	defer func() {
 		if err := recover(); err != nil {
 			logger.Error(fmt.Sprintf("%v", err))
