@@ -17,15 +17,16 @@ import (
 )
 
 type User struct {
-	Id   int    `json:"id"`
-	Name string `json:"name"`
-	Age  int    `json:"age"`
+	Id     int    `json:"id"`
+	Name   string `json:"name"`
+	Age    int    `json:"age"`
+	Remark *string `json:"remark"`
 }
 
 func main() {
-	//testMockGORM()
+	testMockGORM()
 	testMockGORMV2()
-	//testMockXORM()
+	testMockXORM()
 	//testMockZORM()
 	//testMockRedis()
 	//testMockHttpServer()
@@ -41,22 +42,22 @@ func testMockZORM() {
 	fmt.Println(mock.GetDSN())
 	mock.RegisterModels(&User{})
 	//db=mock.GetGormDB()
-    //a:=mock.GetSqlDB()
+	//a:=mock.GetSqlDB()
 	//fmt.Println(a)
 	//return
 
-//	mock.InitSchemas(`CREATE TABLE user (
-//                           id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-//                           age int(3) DEFAULT NULL,
-//                           name varchar(255) DEFAULT NULL COMMENT '名称',
-//                           PRIMARY KEY (id)
-//) ENGINE=InnoDB ;`)
+	//	mock.InitSchemas(`CREATE TABLE user (
+	//                           id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+	//                           age int(3) DEFAULT NULL,
+	//                           name varchar(255) DEFAULT NULL COMMENT '名称',
+	//                           PRIMARY KEY (id)
+	//) ENGINE=InnoDB ;`)
 	mock.ResetAndInit()
 	mock.ResetAndInit()
 	var user User
 
-	finder:=zorm.NewSelectFinder("user").Append("where id=?",1)
-	_,err := zorm.QueryRow(context.Background(),finder,&user)
+	finder := zorm.NewSelectFinder("user").Append("where id=?", 1)
+	_, err := zorm.QueryRow(context.Background(), finder, &user)
 	if err != nil {
 		panic(err)
 	}
@@ -78,14 +79,12 @@ func testMockGORM() {
                           id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
                           age int(3) DEFAULT NULL,
                           name varchar(255) DEFAULT NULL COMMENT '名称',
+remark varchar(255) DEFAULT NULL COMMENT '名称',
                           PRIMARY KEY (id)
 ) ENGINE=InnoDB ;`)
 	mock.ResetAndInit()
 
-	db.Callback().Query().After("gorm:query").Register("ttt:xxxx", func(scope *gorm.Scope) {
-		mock.DoRecord(scope)
-		//fmt.Println(mock.DumpRecorderToSQL())
-	})
+   mock.DoRecord(mock.GetGormDB())
 
 	var user []User
 	err := db.Where("id=?", 1).Find(&user).Error
@@ -96,8 +95,7 @@ func testMockGORM() {
 		panic(fmt.Errorf("testMockGORM error"))
 	}
 
-
-	for _,sql:=range mock.GetDBUtil().DumpFromRecordInfo(mock.GetSqlDB(),mock.DumpRecorderInfo()) {
+	for _, sql := range mock.GetDBUtil().DumpFromRecordInfo(mock.GetSqlDB(), mock.DumpRecorderInfo()) {
 		fmt.Println(sql)
 	}
 
@@ -118,15 +116,15 @@ func testDBUtil() {
 }
 
 func testMockGORMV2() {
-	mockdb.DBType = "mysql"
+	//mockdb.DBType = "mysql"
 	var db *gormv2.DB
 	mock := gmock.NewMockGORMV2("example", func(orm *mockdb.MockGORMV2) {
 		db = orm.GetGormDB()
 	})
-	mock.GetGormDB().Callback().Query().After("gorm:query").Register("xxx:aaa", func(db *gormv2.DB) {
-		mock.DoRecord(db)
-	})
+
+	mock.DoRecord(mock.GetGormDB())
 	//注册模型
+
 	mock.RegisterModels(&User{})
 	//初始化数据库及表数据
 	mock.ResetAndInit()
@@ -169,8 +167,8 @@ func testMockRedis() {
 
 func testMockHttpServer() {
 	// 只支持 http 不支持 https
-	for i:=0;i<10;i++ {
-		server := gmock.NewMockHttpServer(23435,"./example", []string{"www.baidu.com", "www.jenkins.org"})
+	for i := 0; i < 10; i++ {
+		server := gmock.NewMockHttpServer(23435, "./example", []string{"www.baidu.com", "www.jenkins.org"})
 		closeFunc := server.InitMockHttpServer()
 
 		//server.SetReqRspHandler(func(req *mockhttp.Request, rsp *mockhttp.Response) {
@@ -202,8 +200,12 @@ func testMockXORM() {
 	mockdb.DBType = "mysql"
 	mock := gmock.NewMockXORM("example", func(orm *mockdb.MockXORM) {
 		engine = orm.GetXORMEngine()
+
 	})
+	mock.DoRecord(mock.GetXORMEngine())
 	mock.RegisterModels(&User{})
+
+
 
 	mock.ResetAndInit()
 	db := mock.GetXORMEngine()
@@ -215,6 +217,7 @@ func testMockXORM() {
 	if user.Id != 1 {
 		panic(fmt.Errorf("testMockXORM error"))
 	}
+	mock.SaveRecordToFile("./example")
 }
 
 func testMockDocker() {
