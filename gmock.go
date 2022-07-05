@@ -1,6 +1,7 @@
 package gmock
 
 import (
+	"github.com/sjqzhang/requests"
 	"github.com/sjqzhang/gmock/mockdb"
 	"github.com/sjqzhang/gmock/mockhttp"
 	"github.com/sjqzhang/gmock/mockredis"
@@ -8,7 +9,7 @@ import (
 )
 
 func NewMockHttpServer(httpServerPort int, mockJSONDir string, allowProxyHosts []string) *mockhttp.MockHttpServer {
-	return mockhttp.NewMockHttpServer(httpServerPort,mockJSONDir, allowProxyHosts)
+	return mockhttp.NewMockHttpServer(httpServerPort, mockJSONDir, allowProxyHosts)
 }
 
 func NewMockGORM(pathToSqlFileName string, resetHandler func(orm *mockdb.MockGORM)) *mockdb.MockGORM {
@@ -29,4 +30,13 @@ func NewMockXORM(pathToSqlFileName string, resetHandler func(orm *mockdb.MockXOR
 
 func NewDBUtil() *util.DBUtil {
 	return util.NewDBUtil()
+}
+
+func Get(origurl string, args ...interface{}) (resp *requests.Response, err error) {
+
+	return requests.Get(origurl, args...)
+}
+
+func Post(origurl string, args ...interface{}) (resp *requests.Response, err error) {
+	return requests.Post(origurl, args...)
 }
