@@ -1,11 +1,13 @@
 package gmock
 
 import (
-	"github.com/sjqzhang/requests"
 	"github.com/sjqzhang/gmock/mockdb"
 	"github.com/sjqzhang/gmock/mockhttp"
 	"github.com/sjqzhang/gmock/mockredis"
 	"github.com/sjqzhang/gmock/util"
+	"github.com/sjqzhang/requests"
+	"net/http"
+	"net/http/httptest"
 )
 
 func NewMockHttpServer(httpServerPort int, mockJSONDir string, allowProxyHosts []string) *mockhttp.MockHttpServer {
@@ -33,10 +35,17 @@ func NewDBUtil() *util.DBUtil {
 }
 
 func Get(origurl string, args ...interface{}) (resp *requests.Response, err error) {
-
 	return requests.Get(origurl, args...)
 }
 
 func Post(origurl string, args ...interface{}) (resp *requests.Response, err error) {
 	return requests.Post(origurl, args...)
+}
+
+func NewRecorder() *httptest.ResponseRecorder {
+	return requests.NewRecorder()
+}
+
+func NewRequestForTest(method, origurl string, args ...interface{}) (*http.Request, error) {
+	return requests.NewRequestForTest(method,origurl,args...)
 }
