@@ -228,10 +228,20 @@ func (m *httpHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 		resp.Write([]byte("404 Not Found"))
 		return
 	}
+
+	r:=Request{
+		Host: req.Host,
+		Method: req.Method,
+		Endpoint: req.URL.Path,
+
+	}
+
+	consoleLog.Println(fmt.Sprintf("\033[31m <ERROR> %v not match, Please check request config is correct ? \u001B[0m", r))
+
 	//not pass proxy
 	client := http.Client{}
 	client.Transport = &http.Transport{}
-	req.RequestURI = ""
+	//req.RequestURI = ""
 	rsp, err := client.Do(req)
 	if err != nil {
 		consoleLog.Println(err)
