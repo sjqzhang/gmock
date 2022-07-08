@@ -1,6 +1,7 @@
 package mockredis
 
 import (
+	"fmt"
 	"github.com/alicebob/miniredis/v2"
 	"github.com/go-redis/redis/v8"
 	redigo "github.com/gomodule/redigo/redis"
@@ -13,16 +14,26 @@ type MockRedisServer struct {
 }
 
 func NewMockRedisServer(port int) *MockRedisServer {
-
 	svc := MockRedisServer{
 		port:        port,
 		redisServer: miniredis.NewMiniRedis(),
 	}
-	err := svc.redisServer.Start()
+	err := svc.redisServer.StartAddr(fmt.Sprintf(":%v", port))
 	if err != nil {
 		panic(err)
 	}
 	return &svc
+}
+
+func (m *MockRedisServer) Port() string {
+	return m.redisServer.Port()
+}
+
+func (m *MockRedisServer) Addr() string {
+	return m.redisServer.Addr()
+}
+func (m *MockRedisServer) Host() string {
+	return m.redisServer.Host()
 }
 
 func (m *MockRedisServer) FastForward(duration time.Duration) {
