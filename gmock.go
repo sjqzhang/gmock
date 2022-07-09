@@ -30,6 +30,18 @@ func NewMockXORM(pathToSqlFileName string, resetHandler func(orm *mockdb.MockXOR
 	return mockdb.NewMockXORM(pathToSqlFileName, resetHandler)
 }
 
+func NewGORMFromDSN(pathToSqlFileName string, dbType string, dsn string) *mockdb.MockGORM {
+	return mockdb.NewGORMFromDSN(pathToSqlFileName, dbType, dsn)
+}
+
+func NewGORMV2FromDSN(pathToSqlFileName string, dbType string, dsn string) *mockdb.MockGORMV2 {
+	return mockdb.NewGORMV2FromDSN(pathToSqlFileName, dbType, dsn)
+}
+
+func NewXORMFromDSN(pathToSqlFileName string, dbType string, dsn string) *mockdb.MockXORM {
+	return mockdb.NewXORMFromDSN(pathToSqlFileName, dbType, dsn)
+}
+
 func NewDBUtil() *util.DBUtil {
 	return util.NewDBUtil()
 }
@@ -47,5 +59,7 @@ func NewRecorder() *httptest.ResponseRecorder {
 }
 
 func NewRequestForTest(method, origurl string, args ...interface{}) (*http.Request, error) {
-	return requests.NewRequestForTest(method,origurl,args...)
+	return requests.NewRequestForTest(method, origurl, args...)
 }
+
+

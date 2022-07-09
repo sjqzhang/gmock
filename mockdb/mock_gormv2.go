@@ -36,6 +36,29 @@ type MockGORMV2 struct {
 	recordLock    sync.Mutex
 }
 
+func NewGORMV2FromDSN(pathToSqlFileName string, dbType string, dsn string) *MockGORMV2 {
+	mock := MockGORMV2{
+		pathToSqlFileName: pathToSqlFileName,
+		models:            make([]interface{}, 0),
+		//resetHandler:      resetHandler,
+		recorder:          make(map[string]mapset.Set),
+		recordLock:        sync.Mutex{},
+		//onceRecorder:      sync.Once{},
+	}
+	mock.dsn=dsn
+	ns := schema.NamingStrategy{
+		SingularTable: true,
+	}
+	db, err:= gorm.Open(mysql.Open(mock.dsn), &gorm.Config{NamingStrategy: ns})
+	if err!=nil {
+		panic(err)
+	}
+	mock.db=db
+	mock.dbType=dbType
+	return  &mock
+}
+
+
 func NewMockGORMV2(pathToSqlFileName string, resetHandler func(orm *MockGORMV2)) *MockGORMV2 {
 	mock := MockGORMV2{
 		pathToSqlFileName: pathToSqlFileName,

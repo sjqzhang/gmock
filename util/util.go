@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/sjqzhang/goutil"
 	"log"
+	"net"
 	"os"
 	"runtime"
 	"runtime/debug"
@@ -47,3 +48,17 @@ func Recover() {
 }
 
 var Util *goutil.Common = &goutil.Common{}
+
+func CheckPortIsReady(addr string) (bool, error) {
+	conn, err := net.Dial("tcp", addr)
+	if err != nil {
+		return false, err
+	}
+	defer conn.Close()
+	return true, nil
+}
+
+func Exec(cmd string) (string, int) {
+
+	return Util.Exec([]string{"sh", "-c", cmd}, 3600)
+}
