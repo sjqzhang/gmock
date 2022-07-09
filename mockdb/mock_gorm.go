@@ -65,7 +65,7 @@ func (l *Logger) Panic(msg interface{}) {
 var logger = NewLogger("gmock.mockdb")
 
 
-func NewFromDSN(pathToSqlFileName string, dbType string, dsn string) *MockGORM {
+func NewGORMFromDSN(pathToSqlFileName string, dbType string, dsn string) *MockGORM {
 	mock := MockGORM{
 		pathToSqlFileName: pathToSqlFileName,
 		models:            make([]interface{}, 0),

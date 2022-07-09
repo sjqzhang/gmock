@@ -36,6 +36,24 @@ type MockXORM struct {
 	schema        string
 }
 
+func NewXORMFromDSN(pathToSqlFileName string, dbType string, dsn string) *MockXORM {
+	var db *xorm.Engine
+	var err error
+	mock := MockXORM{
+		pathToSqlFileName: pathToSqlFileName,
+		engine:            db,
+		models:            make([]interface{}, 0),
+		//resetHandler:      resetHandler,
+		recorder: make(map[string]mapset.Set),
+		once:     sync.Once{},
+	}
+	db, err = xorm.NewEngine("sqlite3", ":memory:")
+	if err != nil {
+		panic(err)
+	}
+	return &mock
+}
+
 func NewMockXORM(pathToSqlFileName string, resetHandler func(orm *MockXORM)) *MockXORM {
 	var db *xorm.Engine
 	var err error
