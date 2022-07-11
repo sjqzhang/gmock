@@ -335,7 +335,7 @@ func (m *MockGORM) doRecord(scope *gorm.Scope) {
 	//})
 
 	if m.recorderSQLDB == nil {
-		m.recorderSQLDB = scope.DB().DB()
+		m.recorderSQLDB = scope.NewDB().DB()
 	}
 
 	m.recordLock.Lock()
