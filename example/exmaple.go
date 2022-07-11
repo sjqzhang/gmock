@@ -8,29 +8,32 @@ import (
 	"github.com/sjqzhang/gmock"
 	"github.com/sjqzhang/gmock/mockdb"
 	"github.com/sjqzhang/gmock/mockdocker"
+	"github.com/sjqzhang/gmock/util"
 	_ "gorm.io/driver/mysql"
 	gormv2 "gorm.io/gorm"
 	"io/ioutil"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 	"xorm.io/xorm"
 )
 
 type User struct {
-	Id     int    `json:"id"`
-	Name   string `json:"name"`
-	Age    int    `json:"age"`
+	Id     int     `json:"id"`
+	Name   string  `json:"name"`
+	Age    int     `json:"age"`
 	Remark *string `json:"remark"`
 }
 
 func main() {
-	testMockGORM()
-	testMockGORMV2()
-	testMockXORM()
+	//testMockGORM()
+	//testMockGORMV2()
+	//testMockXORM()
 	//testMockZORM()
 	//testMockRedis()
 	//testMockHttpServer()
-	//testMockDocker()
+	testMockDocker()
 	//testDBUtil()
 
 }
@@ -84,7 +87,7 @@ remark varchar(255) DEFAULT NULL COMMENT '名称',
 ) ENGINE=InnoDB ;`)
 	mock.ResetAndInit()
 
-   mock.DoRecord(mock.GetGormDB())
+	mock.DoRecord(mock.GetGormDB())
 
 	var user []User
 	err := db.Where("id=?", 1).Find(&user).Error
@@ -205,8 +208,6 @@ func testMockXORM() {
 	mock.DoRecord(mock.GetXORMEngine())
 	mock.RegisterModels(&User{})
 
-
-
 	mock.ResetAndInit()
 	db := mock.GetXORMEngine()
 	var user User
@@ -221,7 +222,43 @@ func testMockXORM() {
 }
 
 func testMockDocker() {
-	mock := mockdocker.NewMockDockerService()
+	mock := mockdocker.NewMockDockerServiceWithInit(func() <-chan bool {
+		c := make(chan bool, 1)
+		checker := func() bool {
+			count, _ := util.Exec("ps aux|grep -i docker|wc -l")
+			cnt, err := strconv.Atoi(strings.TrimSpace(count))
+			if err != nil {
+				return false
+			}
+			if cnt > 3 {
+				return true
+			}
+			return false
+		}
+		timer := time.NewTimer(time.Second * 30)
+		for {
+			select {
+			case <-timer.C:
+				c <- false
+				goto BREAK
+			default:
+				if !checker() {
+					util.Exec("open /Applications/Docker.app")
+					time.Sleep(time.Second*25)
+				} else {
+					c <- true
+					goto BREAK
+				}
+
+			}
+
+		}
+		return c
+	BREAK:
+		return c
+
+	})
+
 	defer mock.Destroy()
 	err := mock.InitContainerWithCmd(func(cmd *string) {
 		//  注意：容器必须后台运行，否则会挂起，程序不会继续执行,所以要保证你的容器后台运行不退出
