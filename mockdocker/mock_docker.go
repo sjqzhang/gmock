@@ -32,21 +32,20 @@ func NewLogger(tag string) *Logger {
 }
 
 func (l *Logger) Log(msg interface{}) {
-	l.log.Println("\u001B[32m" + fmt.Sprintf("%v", msg)  + "\u001B[0m")
+	l.log.Println("\u001B[32m" + fmt.Sprintf("%v", msg) + "\u001B[0m")
 }
 func (l *Logger) Warn(msg interface{}) {
-	l.log.Println("\u001B[33m" + fmt.Sprintf("%v", msg)  + "\u001B[0m")
+	l.log.Println("\u001B[33m" + fmt.Sprintf("%v", msg) + "\u001B[0m")
 }
 func (l *Logger) Error(msg interface{}) {
 
 	l.log.Println("\u001B[31m" + fmt.Sprintf("%v", msg) + "\u001B[0m")
 }
 func (l *Logger) Panic(msg interface{}) {
-	panic("\u001B[31m" + fmt.Sprintf("%v", msg)  + "\u001B[0m")
+	panic("\u001B[31m" + fmt.Sprintf("%v", msg) + "\u001B[0m")
 }
 
 var logger = NewLogger("gmock.mockdocker")
-
 
 type MockService interface {
 	InitContainer(handler func(opts *docker.CreateContainerOptions)) error
@@ -57,6 +56,24 @@ type MockDockerService struct {
 	client       *docker.Client
 	containers   []*docker.Container
 	containerIDs []string
+
+	initDocker func() <-chan bool
+}
+
+func NewMockDockerServiceWithInit(initDocker func() <-chan bool) *MockDockerService {
+	ok := <-initDocker()
+	if !ok {
+		panic("err")
+	}
+	client, err := getDockerClient()
+	if err != nil {
+		panic(err)
+	}
+	return &MockDockerService{
+		client:     client,
+		initDocker: initDocker,
+		//containers: make([]*docker.Container, 10),
+	}
 }
 
 func NewMockDockerService() *MockDockerService {
@@ -87,6 +104,7 @@ func (m *MockDockerService) InitContainer(handler func(opts *docker.CreateContai
 func (m *MockDockerService) InitContainerWithCmd(handler func(cmd *string)) error {
 	var cmd string
 	handler(&cmd)
+
 	return m.startServiceWithCmd(cmd)
 }
 
@@ -137,6 +155,11 @@ func (m *MockDockerService) WaitForReady(checkReadyCommand string, timeout time.
 	exp := regexp.MustCompile(`\s+`)
 	cmds := exp.Split(checkReadyCommand, -1)
 	start := time.Now()
+	if m.initDocker != nil {
+		go func() {
+			<-m.initDocker()
+		}()
+	}
 	for {
 		<-ticker.C
 		if time.Now().Sub(start) > timeout {

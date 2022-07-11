@@ -59,6 +59,8 @@ func CheckPortIsReady(addr string) (bool, error) {
 }
 
 func Exec(cmd string) (string, int) {
-
+	if runtime.GOOS == "windows" {
+		return Util.Exec([]string{"cmd", "/C", cmd}, 3600)
+	}
 	return Util.Exec([]string{"sh", "-c", cmd}, 3600)
 }
