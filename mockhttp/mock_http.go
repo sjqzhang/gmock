@@ -42,6 +42,7 @@ type Request struct {
 	Host     string `json:"host"`
 	Method   string `json:"method"`
 	Endpoint string `json:"endpoint"`
+	Body     string `json:"body"`
 	//Params   *map[string]string `json:"params"`
 	//Headers  *map[string]string `json:"headers"`
 }
@@ -131,10 +132,20 @@ func NewMockHttpServer(httpServerPort int, mockJSONDir string, allowProxyHosts [
 
 }
 
+func (m *httpHandler) compareStrTrimBlank(str1 string, str2 string) bool {
+	trimStr1 := strings.Trim(strings.TrimSpace(str1), "\n")
+	trimStr2 := strings.Trim(strings.TrimSpace(str2), "\n")
+	return trimStr1 == trimStr2
+}
+
 func (m *httpHandler) getRequest(rr *http.Request) reqrsp {
 	var r reqrsp
+	reqBody := m.getRequestBody(rr)
 	for _, req := range m.mockHttpServer.mockReqRsp {
-		if req.Request.Endpoint == rr.URL.Path && req.Request.Host == rr.Host && strings.ToUpper(req.Request.Method) == strings.ToUpper(rr.Method) {
+		if req.Request.Endpoint == rr.URL.Path &&
+			req.Request.Host == rr.Host &&
+			strings.ToUpper(req.Request.Method) == strings.ToUpper(rr.Method) &&
+			m.compareStrTrimBlank(req.Request.Body, reqBody) {
 			return req
 		}
 	}
@@ -151,6 +162,18 @@ func (m *httpHandler) getRequest(rr *http.Request) reqrsp {
 	return r
 }
 
+func (m *httpHandler) getRequestBody(req *http.Request) string {
+	if req.Body == nil {
+		return ""
+	}
+	b, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		return ""
+	}
+	req.Body = ioutil.NopCloser(bytes.NewBuffer(b))
+	return string(b)
+}
+
 func (m *httpHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	var body string
 	bodyPrt := &body
@@ -165,7 +188,9 @@ func (m *httpHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 		consoleLog.Println(fmt.Sprintf("\033[32m <Request> Method:'%v'  RequestURI:%v Request Body:%v \u001B[0m", req.Method, req.RequestURI, string(data)))
 		consoleLog.Println(fmt.Sprintf("\u001B[33m <Response> Method:'%v' Status:%v  RequestURI:%v Response Body:%v \u001B[0m", req.Method, *respStatusPtr, req.URL, *bodyPrt))
 	}()
-	key := fmt.Sprintf("#%v_#%v_#%v", req.Host, strings.ToUpper(req.Method), req.URL.Path)
+	reqBody := m.getRequestBody(req)
+	//key := fmt.Sprintf("#%v_#%v_#%v_#%v", req.Host, strings.ToUpper(req.Method), req.URL.Path)
+	key := fmt.Sprintf("#%v_#%v_#%v_#%v", req.Host, strings.ToUpper(req.Method), req.URL.Path, reqBody)
 	if rsp, ok := m.mockHttpServer.reqMap[key]; ok {
 		if rsp.Headers != nil {
 			for k, v := range *rsp.Headers {
@@ -229,11 +254,11 @@ func (m *httpHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	r:=Request{
-		Host: req.Host,
-		Method: req.Method,
+	r := Request{
+		Host:     req.Host,
+		Method:   req.Method,
 		Endpoint: req.URL.Path,
-
+		Body:     reqBody,
 	}
 
 	consoleLog.Println(fmt.Sprintf("\033[31m <ERROR> %v not match, Please check request config is correct ? \u001B[0m", r))
@@ -321,7 +346,8 @@ func (m *MockHttpServer) SetReqRspHandler(reqHander func(req *Request, rsp *Resp
 func (m *MockHttpServer) setReqToResponse(req Request, rsp Response) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
-	key := fmt.Sprintf("#%v_#%v_#%v", req.Host, strings.ToUpper(req.Method), req.Endpoint)
+	key := fmt.Sprintf("#%v_#%v_#%v_#%v", req.Host, strings.ToUpper(req.Method), req.Endpoint, req.Body)
+	//key := fmt.Sprintf("#%v_#%v_#%v", req.Host, strings.ToUpper(req.Method), req.Endpoint)
 	m.reqMap[key] = rsp
 }
 func (m *MockHttpServer) newReqToResponse() (Request, Response) {
