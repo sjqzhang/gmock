@@ -6,37 +6,37 @@ import (
 )
 
 func TestHttpServer(t *testing.T) {
-	httpMock:=NewMockHttpServer(12345,"./",[]string{"wwww.baidu.com"})
+	httpMock := NewMockHttpServer(12345, "./", []string{"wwww.baidu.com"})
 	httpMock.SetReqRspHandler(func(req *Request, rsp *Response) {
-		req.Method="GET"
-		req.Endpoint="/index.html"
-		req.Host="www.baidu.com"
-		rsp.Body="baidu!"
+		req.Method = "POST"
+		req.Endpoint = "/index.html"
+		req.Host = "www.baidu.com"
+		req.Body = `{"name":test}`
+		rsp.Body = "baidu!"
 	})
 	httpMock.InitMockHttpServer()
 
-	resp,err:=requests.Get("http://www.baidu.com/index.html")
-	if err!=nil {
+	resp, err := requests.PostJson("http://www.baidu.com/index.html", `{"name":test}`)
+	//resp, err := requests.Get("http://www.baidu.com/index.html")
+	if err != nil {
 		t.Fail()
 	}
-	if resp.Text()!="baidu!" {
+	if resp.Text() != "baidu!" {
 		t.Fail()
 	}
-
 
 	httpMock.SetReqRspHandler(func(req *Request, rsp *Response) {
-		req.Method="GET"
-		req.Endpoint="/index.html"
-		req.Host="127.0.0.1:12345" //direct with http port
-		rsp.Body="baidu!"
+		req.Method = "GET"
+		req.Endpoint = "/index.html"
+		req.Host = "127.0.0.1:12345" //direct with http port
+		rsp.Body = "baidu!"
 	})
 
-
-	resp,err=requests.Get("http://127.0.0.1:12345/index.html")
-	if err!=nil {
+	resp, err = requests.Get("http://127.0.0.1:12345/index.html")
+	if err != nil {
 		t.Fail()
 	}
-	if resp.Text()!="baidu!" {
+	if resp.Text() != "baidu!" {
 		t.Fail()
 	}
 
@@ -48,7 +48,5 @@ func TestHttpServer(t *testing.T) {
 	//if resp.Text()!="baidu!" {
 	//	t.Fail()
 	//}
-
-
 
 }

@@ -64,28 +64,25 @@ func (l *Logger) Panic(msg interface{}) {
 
 var logger = NewLogger("gmock.mockdb")
 
-
 func NewGORMFromDSN(pathToSqlFileName string, dbType string, dsn string) *MockGORM {
 	mock := MockGORM{
 		pathToSqlFileName: pathToSqlFileName,
 		models:            make([]interface{}, 0),
 		//resetHandler:      resetHandler,
-		recorder:          make(map[string]mapset.Set),
-		recordLock:        sync.Mutex{},
+		recorder:   make(map[string]mapset.Set),
+		recordLock: sync.Mutex{},
 		//onceRecorder:      sync.Once{},
 	}
-	mock.dsn=dsn
-	db, err:= gorm.Open(dbType, mock.dsn)
-	if err!=nil {
+	mock.dsn = dsn
+	db, err := gorm.Open(dbType, mock.dsn)
+	if err != nil {
 		panic(err)
 	}
-	mock.db=db
-	mock.dbType=dbType
+	mock.db = db
+	mock.dbType = dbType
 	db.SingularTable(true)
-	return  &mock
+	return &mock
 }
-
-
 
 func NewMockGORM(pathToSqlFileName string, resetHandler func(orm *MockGORM)) *MockGORM {
 
@@ -127,8 +124,6 @@ func NewMockGORM(pathToSqlFileName string, resetHandler func(orm *MockGORM)) *Mo
 	return &mock
 
 }
-
-
 
 func getFilesBySuffix(dir string, suffix string) []string {
 	var files []string
@@ -335,7 +330,7 @@ func (m *MockGORM) doRecord(scope *gorm.Scope) {
 	//})
 
 	if m.recorderSQLDB == nil {
-		m.recorderSQLDB = scope.NewDB().DB()
+		m.recorderSQLDB = scope.DB().DB()
 	}
 
 	m.recordLock.Lock()
