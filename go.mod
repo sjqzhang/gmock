@@ -35,7 +35,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/sirupsen/logrus v1.8.1
-	github.com/sjqzhang/goutil v0.0.2
+	github.com/sjqzhang/goutil v0.0.3
 	github.com/sjqzhang/requests v1.0.4
 	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/goleveldb v1.0.0
