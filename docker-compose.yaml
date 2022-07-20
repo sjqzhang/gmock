@@ -1,0 +1,40 @@
+version: '3'
+services:
+  mysql:
+#    restart: always
+    privileged: true
+    image: mysql:5.7
+    container_name: test_mysql
+#    volumes:
+#      - ./db:/var/lib/mysql
+#      - ./conf/:/etc/mysql/conf.d
+#      - ./logs:/logs
+    environment:
+      MYSQL_ROOT_PASSWORD: "mock"
+      MYSQL_INITDB_SKIP_TZINFO: "Asia/Shanghai"
+      MYSQL_DATABASE: "mock"
+    ports:
+      - "63307:3306"
+    network_mode: "bridge"
+  redis:
+    image: redis
+    container_name: test_redis
+    network_mode: bridge
+#    command: redis-server /etc/redis. Conf # start redis command
+#    volumes:
+#      - ./redis/redis.conf:/etc/redis.conf
+    ports:
+      - "63790:6379"
+  kafka:
+    image: sjqzhang/kafka
+    container_name: test_kafka
+    network_mode: bridge
+    environment:
+      ADVERTISED_HOST: "127.0.0.1"
+      ADVERTISED_PORT: "9092"
+    #    command: redis-server /etc/redis. Conf # start redis command
+    #    volumes:
+    #      - ./redis/redis.conf:/etc/redis.conf
+    ports:
+      - "9092:9092"
+      - "2181:2181"
