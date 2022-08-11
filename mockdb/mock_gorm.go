@@ -84,12 +84,12 @@ func NewGORMFromDSN(pathToSqlFileName string, dbType string, dsn string) *MockGO
 	return &mock
 }
 
-func NewMockGORM(pathToSqlFileName string, resetHandler func(orm *MockGORM)) *MockGORM {
+func NewMockGORM(pathToSqlFileName string, dbName string) *MockGORM {
 
 	mock := MockGORM{
 		pathToSqlFileName: pathToSqlFileName,
 		models:            make([]interface{}, 0),
-		resetHandler:      resetHandler,
+		resetHandler:      nil,
 		recorder:          make(map[string]mapset.Set),
 		recordLock:        sync.Mutex{},
 		//onceRecorder:      sync.Once{},
@@ -97,13 +97,16 @@ func NewMockGORM(pathToSqlFileName string, resetHandler func(orm *MockGORM)) *Mo
 	var err error
 	var db *gorm.DB
 	mock.util = util.NewDBUtil()
+	if dbName == "" {
+		dbName = "mock"
+	}
 	if DBType == "mysql" {
 		for i := 63306; i < 63400; i++ {
 			_, e := net.Dial("tcp", fmt.Sprintf("127.0.0.1:%v", i))
 			if e == nil {
 				continue
 			}
-			mock.util.RunMySQLServer("mock", i, false)
+			mock.util.RunMySQLServer(dbName, i, false)
 			time.Sleep(time.Second)
 			mock.dsn = fmt.Sprintf("root:root@tcp(127.0.0.1:%v)/mock?charset=utf8&parseTime=True&loc=Local", i)
 			mock.dbType = "mysql"
