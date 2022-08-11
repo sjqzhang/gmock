@@ -41,29 +41,28 @@ func NewGORMV2FromDSN(pathToSqlFileName string, dbType string, dsn string) *Mock
 		pathToSqlFileName: pathToSqlFileName,
 		models:            make([]interface{}, 0),
 		//resetHandler:      resetHandler,
-		recorder:          make(map[string]mapset.Set),
-		recordLock:        sync.Mutex{},
+		recorder:   make(map[string]mapset.Set),
+		recordLock: sync.Mutex{},
 		//onceRecorder:      sync.Once{},
 	}
-	mock.dsn=dsn
+	mock.dsn = dsn
 	ns := schema.NamingStrategy{
 		SingularTable: true,
 	}
-	db, err:= gorm.Open(mysql.Open(mock.dsn), &gorm.Config{NamingStrategy: ns})
-	if err!=nil {
+	db, err := gorm.Open(mysql.Open(mock.dsn), &gorm.Config{NamingStrategy: ns})
+	if err != nil {
 		panic(err)
 	}
-	mock.db=db
-	mock.dbType=dbType
-	return  &mock
+	mock.db = db
+	mock.dbType = dbType
+	return &mock
 }
 
-
-func NewMockGORMV2(pathToSqlFileName string, resetHandler func(orm *MockGORMV2)) *MockGORMV2 {
+func NewMockGORMV2(pathToSqlFileName string, dbName string) *MockGORMV2 {
 	mock := MockGORMV2{
 		pathToSqlFileName: pathToSqlFileName,
 		models:            make([]interface{}, 0),
-		resetHandler:      resetHandler,
+		resetHandler:      nil,
 		recorder:          make(map[string]mapset.Set),
 		recordLock:        sync.Mutex{},
 		//onceRecorder:      sync.Once{},
@@ -74,6 +73,10 @@ func NewMockGORMV2(pathToSqlFileName string, resetHandler func(orm *MockGORMV2))
 		SingularTable: true,
 	}
 
+	if dbName == "" {
+		dbName = "mock"
+	}
+
 	mock.util = util.NewDBUtil()
 	if DBType == "mysql" {
 		for i := 63306; i < 63400; i++ {
@@ -81,7 +84,7 @@ func NewMockGORMV2(pathToSqlFileName string, resetHandler func(orm *MockGORMV2))
 			if e == nil {
 				continue
 			}
-			mock.util.RunMySQLServer("mock", i, false)
+			mock.util.RunMySQLServer(dbName, i, false)
 			time.Sleep(time.Second)
 			mock.dsn = fmt.Sprintf("root:root@tcp(127.0.0.1:%v)/mock?charset=utf8&parseTime=True&loc=Local", i)
 			mock.dbType = "mysql"
