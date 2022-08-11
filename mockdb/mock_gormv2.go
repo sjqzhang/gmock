@@ -86,7 +86,7 @@ func NewMockGORMV2(pathToSqlFileName string, dbName string) *MockGORMV2 {
 			}
 			mock.util.RunMySQLServer(dbName, i, false)
 			time.Sleep(time.Second)
-			mock.dsn = fmt.Sprintf("root:root@tcp(127.0.0.1:%v)/mock?charset=utf8&parseTime=True&loc=Local", i)
+			mock.dsn = fmt.Sprintf("root:root@tcp(127.0.0.1:%v)/%s?charset=utf8&parseTime=True&loc=Local", i,dbName)
 			mock.dbType = "mysql"
 			db, err = gorm.Open(mysql.Open(mock.dsn), &gorm.Config{NamingStrategy: ns})
 			break
