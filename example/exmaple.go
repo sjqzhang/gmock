@@ -27,14 +27,14 @@ type User struct {
 }
 
 func main() {
-	//testMockGORM()
+	testMockGORM()
 	//testMockGORMV2()
-	//testMockXORM()
-	//testMockZORM()
-	//testMockRedis()
-	//testMockHttpServer()
-	testMockDocker()
-	//testDBUtil()
+	////testMockXORM()
+	////testMockZORM()
+	////testMockRedis()
+	////testMockHttpServer()
+	//testMockDocker()
+	////testDBUtil()
 
 }
 
@@ -71,36 +71,46 @@ func testMockZORM() {
 }
 
 func testMockGORM() {
-	var db *gorm.DB
-	mockdb.DBType = "mysql"
-	mock := gmock.NewMockGORM("example", func(gorm *mockdb.MockGORM) {
-		db = gorm.GetGormDB()
-	})
-	fmt.Println(mock.GetDSN())
-	mock.RegisterModels(&User{})
-	mock.InitSchemas(`CREATE TABLE user (
-                          id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-                          age int(3) DEFAULT NULL,
-                          name varchar(255) DEFAULT NULL COMMENT '名称',
+	//	var db *gorm.DB
+	//	mockdb.DBType = "mysql"
+	//	mock := gmock.NewMockGORM("example", "mock")
+	//	db=mock.GetGormDB()
+	//	fmt.Println(mock.GetDSN())
+	//	mock.RegisterModels(&User{})
+	//	mock.InitSchemas(`CREATE TABLE user (
+	//                         id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+	//                         age int(3) DEFAULT NULL,
+	//                         name varchar(255) DEFAULT NULL COMMENT '名称',
+	//remark varchar(255) DEFAULT NULL COMMENT '名称',
+	//                         PRIMARY KEY (id)
+	//) ENGINE=InnoDB ;`)
+	//	mock.ResetAndInit()
+	//
+	//	mock.DoRecord(mock.GetGormDB())
+	//
+	//	var user []User
+	//	err := db.Where("id=?", 1).Find(&user).Error
+	//	if err != nil {
+	//		panic(err)
+	//	}
+	//	if user[0].Id != 1 {
+	//		panic(fmt.Errorf("testMockGORM error"))
+	//	}
+	//
+	//	for _, sql := range mock.GetDBUtil().DumpFromRecordInfo(mock.GetSqlDB(), mock.DumpRecorderInfo()) {
+	//		fmt.Println(sql)
+	//	}
+
+	MockDB := gmock.NewGORMFromDSN("./example/ddl.txt", "mysql", "root:mock@tcp(127.0.0.1:63307)/hello?charset=utf8&parseTime=True&loc=Local")
+
+	MockDB.InitSchemas(`CREATE TABLE user (
+                         id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+                         age int(3) DEFAULT NULL,
+                         name varchar(255) DEFAULT NULL COMMENT '名称',
 remark varchar(255) DEFAULT NULL COMMENT '名称',
-                          PRIMARY KEY (id)
+                         PRIMARY KEY (id)
 ) ENGINE=InnoDB ;`)
-	mock.ResetAndInit()
-
-	mock.DoRecord(mock.GetGormDB())
-
-	var user []User
-	err := db.Where("id=?", 1).Find(&user).Error
-	if err != nil {
-		panic(err)
-	}
-	if user[0].Id != 1 {
-		panic(fmt.Errorf("testMockGORM error"))
-	}
-
-	for _, sql := range mock.GetDBUtil().DumpFromRecordInfo(mock.GetSqlDB(), mock.DumpRecorderInfo()) {
-		fmt.Println(sql)
-	}
+	MockDB.ResetAndInit()
 
 }
 
@@ -121,10 +131,8 @@ func testDBUtil() {
 func testMockGORMV2() {
 	//mockdb.DBType = "mysql"
 	var db *gormv2.DB
-	mock := gmock.NewMockGORMV2("example", func(orm *mockdb.MockGORMV2) {
-		db = orm.GetGormDB()
-	})
-
+	mock := gmock.NewMockGORMV2("example", "mock")
+	db = mock.GetGormDB()
 	mock.DoRecord(mock.GetGormDB())
 	//注册模型
 
@@ -244,7 +252,7 @@ func testMockDocker() {
 			default:
 				if !checker() {
 					util.Exec("open /Applications/Docker.app")
-					time.Sleep(time.Second*25)
+					time.Sleep(time.Second * 25)
 				} else {
 					c <- true
 					goto BREAK

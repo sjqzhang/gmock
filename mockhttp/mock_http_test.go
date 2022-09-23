@@ -6,7 +6,7 @@ import (
 )
 
 func TestHttpServer(t *testing.T) {
-	httpMock := NewMockHttpServer(12345, "./", []string{"wwww.baidu.com"})
+	httpMock := NewMockHttpServer(12345, "./", []string{"www.baidu.com"})
 	httpMock.SetReqRspHandler(func(req *Request, rsp *Response) {
 		req.Method = "POST"
 		req.Endpoint = "/index.html"
@@ -15,6 +15,16 @@ func TestHttpServer(t *testing.T) {
 		rsp.Body = "baidu!"
 	})
 	httpMock.InitMockHttpServer()
+
+
+	resp, er := requests.PostJson("https://www.baidu.com/index.html", `{"name":test}`)
+	//resp, err := requests.Get("http://www.baidu.com/index.html")
+	if er != nil {
+		t.Fail()
+	}
+	if resp.Text() != "baidu!" {
+		t.Fail()
+	}
 
 	resp, err := requests.PostJson("http://www.baidu.com/index.html", `{"name":test}`)
 	//resp, err := requests.Get("http://www.baidu.com/index.html")

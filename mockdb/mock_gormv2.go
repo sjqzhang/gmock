@@ -49,9 +49,29 @@ func NewGORMV2FromDSN(pathToSqlFileName string, dbType string, dsn string) *Mock
 	ns := schema.NamingStrategy{
 		SingularTable: true,
 	}
+	var dn *util.DSN
 	db, err := gorm.Open(mysql.Open(mock.dsn), &gorm.Config{NamingStrategy: ns})
 	if err != nil {
-		panic(err)
+		//panic(err)
+		dsn2 := dbType + "://" + dsn
+		dn, err = util.Parse(dsn2)
+		if err != nil {
+			panic(err)
+		}
+		dbName := dn.DatabaseName()
+		dn.SetDatabaseName("sys")
+		db, err = gorm.Open(mysql.Open(dn.DSN(false)), &gorm.Config{NamingStrategy: ns})
+		if err != nil {
+			panic(err)
+		}
+		err = db.Exec(fmt.Sprintf("create database %s", dbName)).Error
+		if err != nil {
+			panic(err)
+		}
+		db, err = gorm.Open(mysql.Open(dn.DSN(false)), &gorm.Config{NamingStrategy: ns})
+		if err != nil {
+			panic(err)
+		}
 	}
 	mock.db = db
 	mock.dbType = dbType
@@ -86,7 +106,7 @@ func NewMockGORMV2(pathToSqlFileName string, dbName string) *MockGORMV2 {
 			}
 			mock.util.RunMySQLServer(dbName, i, false)
 			time.Sleep(time.Second)
-			mock.dsn = fmt.Sprintf("root:root@tcp(127.0.0.1:%v)/%s?charset=utf8&parseTime=True&loc=Local", i,dbName)
+			mock.dsn = fmt.Sprintf("root:root@tcp(127.0.0.1:%v)/%s?charset=utf8&parseTime=True&loc=Local", i, dbName)
 			mock.dbType = "mysql"
 			db, err = gorm.Open(mysql.Open(mock.dsn), &gorm.Config{NamingStrategy: ns})
 			break

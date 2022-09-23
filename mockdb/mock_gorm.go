@@ -74,9 +74,29 @@ func NewGORMFromDSN(pathToSqlFileName string, dbType string, dsn string) *MockGO
 		//onceRecorder:      sync.Once{},
 	}
 	mock.dsn = dsn
+	var dn *util.DSN
+	var err error
 	db, err := gorm.Open(dbType, mock.dsn)
 	if err != nil {
-		panic(err)
+		dsn2 := dbType + "://" + dsn
+		dn, err = util.Parse(dsn2)
+		if err != nil {
+			panic(err)
+		}
+		dbName := dn.DatabaseName()
+		dn.SetDatabaseName("sys")
+		db, err = gorm.Open(dbType, dn.DSN(false))
+		if err != nil {
+			panic(err)
+		}
+		err = db.Exec(fmt.Sprintf("create database %s", dbName)).Error
+		if err != nil {
+			panic(err)
+		}
+		db, err = gorm.Open(dbType, mock.dsn)
+		if err!=nil {
+			panic(err)
+		}
 	}
 	mock.db = db
 	mock.dbType = dbType
@@ -108,7 +128,7 @@ func NewMockGORM(pathToSqlFileName string, dbName string) *MockGORM {
 			}
 			mock.util.RunMySQLServer(dbName, i, false)
 			time.Sleep(time.Second)
-			mock.dsn = fmt.Sprintf("root:root@tcp(127.0.0.1:%v)/%s?charset=utf8&parseTime=True&loc=Local", i,dbName)
+			mock.dsn = fmt.Sprintf("root:root@tcp(127.0.0.1:%v)/%s?charset=utf8&parseTime=True&loc=Local", i, dbName)
 			mock.dbType = "mysql"
 			db, err = gorm.Open("mysql", mock.dsn)
 			break
