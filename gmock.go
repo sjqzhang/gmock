@@ -2,6 +2,7 @@ package gmock
 
 import (
 	"github.com/sjqzhang/gmock/mockdb"
+	"github.com/sjqzhang/gmock/mockgrpc"
 	"github.com/sjqzhang/gmock/mockhttp"
 	"github.com/sjqzhang/gmock/mockredis"
 	"github.com/sjqzhang/gmock/util"
@@ -16,6 +17,10 @@ func NewMockHttpServer(httpServerPort int, mockJSONDir string, allowProxyHosts [
 
 func NewMockGORM(pathToSqlFileName string, dbName string) *mockdb.MockGORM {
 	return mockdb.NewMockGORM(pathToSqlFileName, dbName)
+}
+
+func NewMockGRPC(opts ...mockgrpc.OptionGRPC) *mockgrpc.MockGRPC {
+	return mockgrpc.NewMockGRPC(opts...)
 }
 
 func NewMockGORMV2(pathToSqlFileName string, dbName string) *mockdb.MockGORMV2 {

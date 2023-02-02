@@ -8,7 +8,10 @@ import (
 	"github.com/sjqzhang/gmock"
 	"github.com/sjqzhang/gmock/mockdb"
 	"github.com/sjqzhang/gmock/mockdocker"
+	"github.com/sjqzhang/gmock/mockgrpc"
 	"github.com/sjqzhang/gmock/util"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	_ "gorm.io/driver/mysql"
 	gormv2 "gorm.io/gorm"
 	"io/ioutil"
@@ -27,7 +30,7 @@ type User struct {
 }
 
 func main() {
-	testMockGORM()
+	//testMockGORM()
 	//testMockGORMV2()
 	////testMockXORM()
 	////testMockZORM()
@@ -35,6 +38,10 @@ func main() {
 	////testMockHttpServer()
 	//testMockDocker()
 	////testDBUtil()
+
+	testMockGrpc()
+
+
 
 }
 
@@ -126,6 +133,29 @@ func testDBUtil() {
 		fmt.Println(db.Exec(s))
 	}
 	fmt.Println(util.QueryListBySQL(db.DB(), "select * from project"))
+}
+
+
+func testMockGrpc() {
+
+	svc:=gmock.NewMockGRPC(mockgrpc.WithDirProtocs("example/grpc"),mockgrpc.WithDirStubs("example/grpc/stub"))
+	svc.Start()
+
+	conn,err:=grpc.Dial(svc.GetAddr(),grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err!=nil {
+		panic(err)
+	}
+
+	r,err:=NewGreeterClient(conn).SayHello(context.Background(),&HelloRequest{Name:"world"})
+
+
+	fmt.Println(r,err)
+
+	time.Sleep(time.Second*1000)
+
+
+
+
 }
 
 func testMockGORMV2() {
