@@ -41,8 +41,6 @@ func main() {
 
 	testMockGrpc()
 
-
-
 }
 
 func testMockZORM() {
@@ -135,26 +133,21 @@ func testDBUtil() {
 	fmt.Println(util.QueryListBySQL(db.DB(), "select * from project"))
 }
 
-
 func testMockGrpc() {
 
-	svc:=gmock.NewMockGRPC(mockgrpc.WithDirProtocs("example/grpc"),mockgrpc.WithDirStubs("example/grpc/stub"))
+	svc := gmock.NewMockGRPC(mockgrpc.WithDirProtocs("example/grpc"), mockgrpc.WithDirStubs("example/grpc/stub"))
 	svc.Start()
 
-	conn,err:=grpc.Dial(svc.GetAddr(),grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err!=nil {
+	conn, err := grpc.Dial(svc.GetAddr(), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
 		panic(err)
 	}
 
-	r,err:=NewGreeterClient(conn).SayHello(context.Background(),&HelloRequest{Name:"world"})
+	defer conn.Close()
 
+	c := NewGreeterClient(conn)
 
-	fmt.Println(r,err)
-
-	time.Sleep(time.Second*1000)
-
-
-
+	fmt.Println(c.SayHello(context.Background(), &HelloRequest{Name: "world"}))
 
 }
 

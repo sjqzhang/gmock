@@ -122,7 +122,31 @@ func (m *MockGRPC) Start() error {
 		}
 		err = fmt.Errorf("start mock grpc server failed: %s", ret)
 	}()
-	<-time.After(3 * time.Second)
+	for i := 0; i < 10; i++ {
+		ok, e := util.CheckPortIsReady(fmt.Sprintf("127.0.0.1:%d", m.portGrpc))
+		if e != nil {
+			if i>3 {
+				logger.Warn(fmt.Sprintf("check port %d failed: %s", m.portGrpc, e))
+			}
+			time.Sleep(500 * time.Millisecond)
+		}
+		if ok {
+			break
+		}
+	}
+	for i := 0; i < 10; i++ {
+		ok, e := util.CheckPortIsReady(fmt.Sprintf("127.0.0.1:%d", m.portAdmin))
+		if e != nil {
+			if i>3 {
+				logger.Warn(fmt.Sprintf("check port %d failed: %s", m.portGrpc, e))
+			}
+			time.Sleep(500 * time.Millisecond)
+		}
+		if ok {
+			break
+		}
+	}
+	time.Sleep(3 * time.Second)
 	return err
 }
 
@@ -134,7 +158,6 @@ func (m *MockGRPC) Stop() error {
 	}
 	return nil
 }
-
 
 // GetAddr get the address of mock grpc server
 func (m *MockGRPC) GetAddr() string {
