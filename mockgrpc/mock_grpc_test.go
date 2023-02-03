@@ -1,17 +1,19 @@
 package mockgrpc
 
 import (
+	"fmt"
 	"testing"
-	"time"
 )
 
 
 
 
 func TestServer(t *testing.T) {
-	svc:=NewMockGRPC(WithDirProtocs("/Users/junqiang.zhang/repo/go/gripmock/example/simple"))
+	svc:=NewMockGRPC(WithDirProtocs("../example/grpc"))
 	err:= svc.Start()
 	if err==nil {
-		time.Sleep(time.Second*1000)
+		fmt.Println("Ok")
+	} else {
+		t.Fail()
 	}
 }
