@@ -149,6 +149,10 @@ func testMockGrpc() {
 
 	fmt.Println(c.SayHello(context.Background(), &HelloRequest{Name: "world"}))
 
+	//grpcurl -plaintext -d '{"name": "world"}' 127.0.0.1:4770 main.Greeter/SayHello
+
+	//time.Sleep(time.Second * 1000)
+
 }
 
 func testMockGORMV2() {

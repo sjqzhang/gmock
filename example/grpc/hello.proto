@@ -4,6 +4,8 @@ option go_package = "github.com/sjqzhang/gmock/example/grpc";
 
 package main;
 
+//grpcurl -plaintext -d '{"name": "world"}' 127.0.0.1:4770 main.Greeter/SayHello
+
 // The greeting service definition.
 service Greeter {
   // Sends a greeting
