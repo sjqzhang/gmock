@@ -5,7 +5,7 @@ services:
     privileged: true
     image: mysql:5.7
     command: mysqld --sql_mode="STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION" --default-authentication-plugin=mysql_native_password
-    container_name: test_mysql
+    container_name: mock_mysql
     #    volumes:
     #      - ./db:/var/lib/mysql
     #      - ./conf/:/etc/mysql/conf.d
@@ -19,7 +19,7 @@ services:
     network_mode: "bridge"
   redis:
     image: redis
-    container_name: test_redis
+    container_name: mock_redis
     network_mode: bridge
     #    command: redis-server /etc/redis. Conf # start redis command
     #    volumes:
@@ -28,7 +28,7 @@ services:
       - "63790:6379"
   kafka:
     image: sjqzhang/kafka
-    container_name: test_kafka
+    container_name: mock_kafka
     network_mode: bridge
     environment:
       ADVERTISED_HOST: "127.0.0.1"
