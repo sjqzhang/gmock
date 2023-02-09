@@ -255,7 +255,7 @@ func (u *DBUtil) DumpFromRecordInfo(db *sql.DB, recorder map[string][]string) ma
 
 			}
 
-			sql := fmt.Sprintf("INSERT INTO `%v`(%v) VALUES(%v);", tableName, strings.Join(names, ","), strings.Join(values, ","))
+			sql := fmt.Sprintf("REPLACE INTO `%v`(%v) VALUES(%v);", tableName, strings.Join(names, ","), strings.Join(values, ","))
 			sqls = append(sqls, sql)
 
 			//result = append(result, row)
