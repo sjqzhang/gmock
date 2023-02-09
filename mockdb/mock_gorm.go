@@ -94,7 +94,7 @@ func NewGORMFromDSN(pathToSqlFileName string, dbType string, dsn string) *MockGO
 			panic(err)
 		}
 		db, err = gorm.Open(dbType, mock.dsn)
-		if err!=nil {
+		if err != nil {
 			panic(err)
 		}
 	}
@@ -408,15 +408,22 @@ func (m *MockGORM) doRecord(scope *gorm.Scope) {
 				item = item.Elem()
 			}
 			if item.IsValid() && item.FieldByName(id).Kind() == reflect.Ptr {
-				m.recorder[tableName].Add(item.FieldByName(id).Elem().Interface())
+
+				if item.FieldByName(id).Elem().Interface() != nil {
+					m.recorder[tableName].Add(item.FieldByName(id).Elem().Interface())
+				}
 			} else {
-				m.recorder[tableName].Add(item.FieldByName(id).Interface())
+
+				if item.FieldByName(id).Interface() != nil {
+					m.recorder[tableName].Add(item.FieldByName(id).Interface())
+				}
+
 			}
 
 		}
 		return
 	}
-	if rValue.Kind() == reflect.Struct  {
+	if rValue.Kind() == reflect.Struct {
 		for i := 0; i < rValue.NumField(); i++ {
 			id = rValue.Type().Field(i).Name
 			if id == "id" || id == "ID" || id == "Id" {
@@ -430,9 +437,14 @@ func (m *MockGORM) doRecord(scope *gorm.Scope) {
 			return
 		}
 		if rValue.FieldByName(id).Kind() == reflect.Ptr {
-			m.recorder[tableName].Add(rValue.FieldByName(id).Elem().Interface())
+
+			if rValue.FieldByName(id).Elem().Interface()!=nil {
+				m.recorder[tableName].Add(rValue.FieldByName(id).Elem().Interface())
+			}
 		} else {
-			m.recorder[tableName].Add(rValue.FieldByName(id).Interface())
+			if rValue.FieldByName(id).Interface() != nil {
+				m.recorder[tableName].Add(rValue.FieldByName(id).Interface())
+			}
 		}
 
 		//m.dbRecorder.Create(rValue.Interface())
