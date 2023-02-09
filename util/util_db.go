@@ -237,6 +237,7 @@ func (u *DBUtil) DumpFromRecordInfo(db *sql.DB, recorder map[string][]string) ma
 					case "VARCHAR", "TEXT", "NVARCHAR":
 						v := fmt.Sprintf("%v", convertToStr(vals[i].([]uint8)))
 						v = strings.Replace(v, "'", "\\'", -1)
+						v = strings.Replace(v, "\n", "\\n", -1)
 						values = append(values, fmt.Sprintf("'%v'", v))
 					default:
 						values = append(values, fmt.Sprintf("%v", convertToStr(vals[i].([]uint8))))
@@ -249,7 +250,9 @@ func (u *DBUtil) DumpFromRecordInfo(db *sql.DB, recorder map[string][]string) ma
 					case int64, float64, int32, int16, int8, float32:
 						values = append(values, fmt.Sprintf("%v", vals[i]))
 					default:
-						values = append(values, fmt.Sprintf("'%v'", strings.Replace(fmt.Sprintf("%v", vals[i]), "'", "\\'", -1)))
+						v:=fmt.Sprintf("'%v'", strings.Replace(fmt.Sprintf("%v", vals[i]), "'", "\\'", -1))
+						v = strings.Replace(v, "\n", "\\n", -1)
+						values = append(values, v)
 					}
 				}
 
