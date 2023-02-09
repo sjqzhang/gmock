@@ -416,8 +416,11 @@ func (m *MockGORM) doRecord(scope *gorm.Scope) {
 		}
 		return
 	}
-	if rValue.Kind() == reflect.Struct {
+	if rValue.Kind() == reflect.Struct  {
 		for i := 0; i < rValue.NumField(); i++ {
+			if rValue.Type().Field(i).Anonymous {
+				continue
+			}
 			id = rValue.Type().Field(i).Name
 			if id == "id" || id == "ID" || id == "Id" {
 				break
