@@ -394,6 +394,11 @@ func (m *MockGORM) doRecord(scope *gorm.Scope) {
 		}
 		for i := 0; i < item.NumField(); i++ {
 			id = item.Type().Field(i).Name
+			if item.Type().Field(i).Anonymous || !item.Type().Field(i).IsExported() {
+				id=""
+				break
+			}
+
 			if id == "id" || id == "ID" || id == "Id" {
 				break
 			}
@@ -418,10 +423,11 @@ func (m *MockGORM) doRecord(scope *gorm.Scope) {
 	}
 	if rValue.Kind() == reflect.Struct  {
 		for i := 0; i < rValue.NumField(); i++ {
-			if rValue.Type().Field(i).Anonymous {
-				continue
-			}
 			id = rValue.Type().Field(i).Name
+			if rValue.Type().Field(i).Anonymous || !rValue.Type().Field(i).IsExported()  {
+				id=""
+				break
+			}
 			if id == "id" || id == "ID" || id == "Id" {
 				break
 			}
