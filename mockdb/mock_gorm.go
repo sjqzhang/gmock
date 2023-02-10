@@ -398,7 +398,7 @@ func (m *MockGORM) doRecord(scope *gorm.Scope) {
 				break
 			}
 		}
-		if id == "" {
+		if strings.ToLower(id) != "id" {
 			return
 		}
 		for i := 0; i < rValue.Len(); i++ {
@@ -410,11 +410,13 @@ func (m *MockGORM) doRecord(scope *gorm.Scope) {
 			if item.IsValid() && item.FieldByName(id).Kind() == reflect.Ptr {
 
 				if item.FieldByName(id).Elem().Interface() != nil {
+
 					m.recorder[tableName].Add(item.FieldByName(id).Elem().Interface())
 				}
 			} else {
 
 				if item.FieldByName(id).Interface() != nil {
+
 					m.recorder[tableName].Add(item.FieldByName(id).Interface())
 				}
 
@@ -430,7 +432,7 @@ func (m *MockGORM) doRecord(scope *gorm.Scope) {
 				break
 			}
 		}
-		if id == "" {
+		if strings.ToLower(id) != "id" {
 			return
 		}
 		if !rValue.FieldByName(id).IsValid() {
@@ -438,11 +440,13 @@ func (m *MockGORM) doRecord(scope *gorm.Scope) {
 		}
 		if rValue.FieldByName(id).Kind() == reflect.Ptr {
 
-			if rValue.FieldByName(id).Elem().Interface()!=nil {
+			if rValue.FieldByName(id).Elem().Interface() != nil {
+
 				m.recorder[tableName].Add(rValue.FieldByName(id).Elem().Interface())
 			}
 		} else {
 			if rValue.FieldByName(id).Interface() != nil {
+
 				m.recorder[tableName].Add(rValue.FieldByName(id).Interface())
 			}
 		}
