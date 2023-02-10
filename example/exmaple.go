@@ -31,7 +31,7 @@ type User struct {
 
 func main() {
 	//testMockGORM()
-	//testMockGORMV2()
+	testMockGORMV2()
 	////testMockXORM()
 	////testMockZORM()
 	////testMockRedis()
@@ -39,7 +39,7 @@ func main() {
 	//testMockDocker()
 	////testDBUtil()
 
-	testMockGrpc()
+	//testMockGrpc()
 
 }
 
@@ -83,11 +83,11 @@ func testMockGORM() {
 	//	fmt.Println(mock.GetDSN())
 	//	mock.RegisterModels(&User{})
 	//	mock.InitSchemas(`CREATE TABLE user (
-	//                         id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-	//                         age int(3) DEFAULT NULL,
-	//                         name varchar(255) DEFAULT NULL COMMENT '名称',
+	//                        id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+	//                        age int(3) DEFAULT NULL,
+	//                        name varchar(255) DEFAULT NULL COMMENT '名称',
 	//remark varchar(255) DEFAULT NULL COMMENT '名称',
-	//                         PRIMARY KEY (id)
+	//                        PRIMARY KEY (id)
 	//) ENGINE=InnoDB ;`)
 	//	mock.ResetAndInit()
 	//
@@ -106,16 +106,22 @@ func testMockGORM() {
 	//		fmt.Println(sql)
 	//	}
 
-	MockDB := gmock.NewGORMFromDSN("./example/ddl.txt", "mysql", "root:mock@tcp(127.0.0.1:63307)/hello?charset=utf8&parseTime=True&loc=Local")
+	mockdb.DBType="mysql"
+	MockDB := gmock.NewGORMFromDSN("./example", "mysql", "root:mock@tcp(127.0.0.1:63307)/mock?charset=utf8&parseTime=True&loc=Local")
 
 	MockDB.InitSchemas(`CREATE TABLE user (
-                         id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-                         age int(3) DEFAULT NULL,
-                         name varchar(255) DEFAULT NULL COMMENT '名称',
+                        id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+                        age int(3) DEFAULT NULL,
+                        name varchar(255) DEFAULT NULL COMMENT '名称',
 remark varchar(255) DEFAULT NULL COMMENT '名称',
-                         PRIMARY KEY (id)
+                        PRIMARY KEY (id)
 ) ENGINE=InnoDB ;`)
+	MockDB.DoRecord(MockDB.GetGormDB())
 	MockDB.ResetAndInit()
+	var user User
+	MockDB.GetGormDB().Where("id=?", 1).Find(&user)
+	MockDB.SaveRecordToFile("./db")
+	fmt.Println(user)
 
 }
 
@@ -168,14 +174,14 @@ func testMockGORMV2() {
 	mock.ResetAndInit()
 	mock.ResetAndInit()
 	//db := mock.GetGormDB()
-	var user User
+	var user []User
 	err := db.Where("id=?", 1).Find(&user).Error
 	if err != nil {
 		panic(err)
 	}
-	if user.Id != 1 {
-		panic(fmt.Errorf("testMockGORMV2 error"))
-	}
+	//if user.Id != 1 {
+	//	panic(fmt.Errorf("testMockGORMV2 error"))
+	//}
 
 	fmt.Println(mock.GetDBUtil().DumpFromRecordInfo(mock.GetSqlDB(), mock.DumpRecorderInfo()))
 

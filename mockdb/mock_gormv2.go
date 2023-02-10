@@ -202,6 +202,50 @@ func (m *MockGORMV2) DoRecord(db *gorm.DB) {
 	})
 }
 
+
+func (m *MockGORMV2) setIdVal(rValue reflect.Value, tableName string, mp map[string]struct{}) {
+	//mp := make(map[string]struct{})
+	//util.CollectFieldNames(rValue.Type(), mp, "")
+	idVal := rValue
+	foundId := false
+	for k, _ := range mp {
+
+		if strings.ToLower(k) == "id" {
+			if idVal.Kind() == reflect.Ptr {
+				idVal = idVal.Elem()
+			}
+			idVal = idVal.FieldByName(k)
+			foundId = true
+			break
+		} else if strings.HasSuffix(strings.ToLower(k), ",id") {
+
+			for _, v := range strings.Split(k, ",") {
+				if idVal.Kind() == reflect.Ptr {
+					idVal = idVal.Elem()
+				}
+				idVal = idVal.FieldByName(v)
+			}
+			foundId = true
+			break
+		}
+	}
+	if !foundId {
+		return
+	}
+	if idVal.IsValid() && idVal.Kind() == reflect.Ptr {
+
+		if idVal.Elem().Interface() != nil {
+
+			m.recorder[tableName].Add(idVal.Elem().Interface())
+		}
+	} else {
+		if idVal.Interface() != nil {
+			m.recorder[tableName].Add(idVal.Interface())
+		}
+
+	}
+}
+
 func (m *MockGORMV2) doRecord(scope *gorm.DB) {
 	defer func() {
 		if err := recover(); err != nil {
@@ -258,39 +302,45 @@ func (m *MockGORMV2) doRecord(scope *gorm.DB) {
 		if id == "" {
 			return
 		}
+		mp := make(map[string]struct{})
+		util.CollectFieldNames(item.Type(), mp, "")
 		for i := 0; i < rValue.Len(); i++ {
+			m.setIdVal(item, tableName, mp)
 			//m.dbRecorder.Create(rValue.Index(i).Interface())
-			item := rValue.Index(i)
-			if item.IsValid() && item.Kind() == reflect.Ptr {
-				item = item.Elem()
-			}
-			if item.IsValid() && item.FieldByName(id).Kind() == reflect.Ptr {
-				m.recorder[tableName].Add(item.FieldByName(id).Elem().Interface())
-			} else {
-				m.recorder[tableName].Add(item.FieldByName(id).Interface())
-			}
+			//item := rValue.Index(i)
+			//if item.IsValid() && item.Kind() == reflect.Ptr {
+			//	item = item.Elem()
+			//}
+			//if item.IsValid() && item.FieldByName(id).Kind() == reflect.Ptr {
+			//	m.recorder[tableName].Add(item.FieldByName(id).Elem().Interface())
+			//} else {
+			//	m.recorder[tableName].Add(item.FieldByName(id).Interface())
+			//}
 
 		}
 		return
 	}
 	if rValue.Kind() == reflect.Struct {
-		for i := 0; i < rValue.NumField(); i++ {
-			id = rValue.Type().Field(i).Name
-			if id == "id" || id == "ID" || id == "Id" {
-				break
-			}
-		}
-		if id == "" {
-			return
-		}
-		if !rValue.FieldByName(id).IsValid() {
-			return
-		}
-		if rValue.FieldByName(id).Kind() == reflect.Ptr {
-			m.recorder[tableName].Add(rValue.FieldByName(id).Elem().Interface())
-		} else {
-			m.recorder[tableName].Add(rValue.FieldByName(id).Interface())
-		}
+		mp := make(map[string]struct{})
+		util.CollectFieldNames(rValue.Type(), mp, "")
+		m.setIdVal(rValue, tableName, mp)
+		//for i := 0; i < rValue.NumField(); i++ {
+		//	id = rValue.Type().Field(i).Name
+		//	if id == "id" || id == "ID" || id == "Id" {
+		//		break
+		//	}
+		//}
+		//if id == "" {
+		//	return
+		//}
+		//if !rValue.FieldByName(id).IsValid() {
+		//	return
+		//}
+		//if rValue.FieldByName(id).Kind() == reflect.Ptr {
+		//	m.recorder[tableName].Add(rValue.FieldByName(id).Elem().Interface())
+		//} else {
+		//	m.recorder[tableName].Add(rValue.FieldByName(id).Interface())
+		//}
 
 		//m.dbRecorder.Create(rValue.Interface())
 	}
