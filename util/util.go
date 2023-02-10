@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"reflect"
 	"regexp"
 	"runtime"
 	"runtime/debug"
@@ -96,6 +97,28 @@ func Parse(dsn string) (*DSN, error) {
 		&DSNValues{parsed.Query()}, isWrapTcp,
 	}
 	return &d, nil
+}
+
+
+func CollectFieldNames(t reflect.Type,m map[string]struct{},prefix string) {
+	// Return if not struct or pointer to struct.
+	if t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+	if t.Kind() != reflect.Struct {
+		return
+	}
+
+	// Iterate through fields collecting names in map.
+	for i := 0; i < t.NumField(); i++ {
+		sf := t.Field(i)
+		m[prefix+ sf.Name] = struct{}{}
+
+		// Recurse into anonymous fields.
+		if sf.Anonymous {
+			CollectFieldNames(sf.Type, m,prefix+sf.Name+",")
+		}
+	}
 }
 
 // Parses query and returns dsn values
