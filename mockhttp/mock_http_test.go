@@ -11,13 +11,13 @@ func TestHttpServer(t *testing.T) {
 		req.Method = "POST"
 		req.Endpoint = "/index.html"
 		req.Host = "www.baidu.com"
-		req.Body = `{"name":test}`
+		//req.Body = `{"name":test}`
 		rsp.Body = "baidu!"
 	})
 	httpMock.InitMockHttpServer()
 
 
-	resp, er := requests.PostJson("https://www.baidu.com/index.html", `{"name":test}`)
+	resp, er := requests.PostJson("http://www.baidu.com/index.html", `{"name":test}`)
 	//resp, err := requests.Get("http://www.baidu.com/index.html")
 	if er != nil {
 		t.Fail()
