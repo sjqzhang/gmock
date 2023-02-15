@@ -90,7 +90,7 @@ func (u *DBUtil) getTagAttr(f reflect.StructField, tagName string, tagAttr strin
 	return "", false
 }
 
-func (u *DBUtil) SaveRecordToFile(dir string, recorder map[string][]string) {
+func (u *DBUtil) SaveRecordToFile(dir string, recorder map[string][]string,overwrite bool) {
 	_, err := os.Stat(dir)
 	if err != nil {
 		err = os.MkdirAll(dir, 0755)
@@ -102,7 +102,7 @@ func (u *DBUtil) SaveRecordToFile(dir string, recorder map[string][]string) {
 	for tableName, sqls := range recorder {
 		data := strings.Join(sqls, "\n")
 		filePath := fmt.Sprintf("%v/%v.sql", dir, tableName)
-		if _, err := os.Stat(filePath); err != nil {
+		if _, err := os.Stat(filePath); err != nil||overwrite {
 			ioutil.WriteFile(fmt.Sprintf("%v/%v.sql", dir, tableName), []byte(data), 0755)
 		}
 	}

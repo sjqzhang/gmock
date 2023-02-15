@@ -177,8 +177,19 @@ func (m *MockGORMV2) GetDBUtil() *util.DBUtil {
 }
 
 func (m *MockGORMV2) SaveRecordToFile(dir string) {
-	m.util.SaveRecordToFile(dir, m.util.DumpFromRecordInfo(m.recorderSQLDB, m.DumpRecorderInfo()))
+	m.util.SaveRecordToFile(dir, m.util.DumpFromRecordInfo(m.recorderSQLDB, m.DumpRecorderInfo()),false)
 }
+
+func (m *MockGORMV2) SaveRecordToFileAuto(dir string) {
+	go func() {
+		for {
+			time.Sleep(time.Second * 10)
+			m.util.SaveRecordToFile(dir, m.util.DumpFromRecordInfo(m.recorderSQLDB, m.DumpRecorderInfo()), true)
+		}
+	}()
+
+}
+
 
 func (m *MockGORMV2) DumpRecorderInfo() map[string][]string {
 	result := make(map[string][]string)

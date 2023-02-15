@@ -199,8 +199,16 @@ func (m *MockXORM) DumpRecorderInfo() map[string][]string {
 }
 
 func (m *MockXORM) SaveRecordToFile(dir string) {
+	m.util.SaveRecordToFile(dir, m.util.DumpFromRecordInfo(m.recorderSQLDB, m.DumpRecorderInfo()), false)
+}
 
-	m.util.SaveRecordToFile(dir, m.util.DumpFromRecordInfo(m.recorderSQLDB, m.DumpRecorderInfo()))
+func (m *MockXORM) SaveRecordToFileAuto(dir string) {
+	go func() {
+		for {
+			time.Sleep(10 * time.Second)
+			m.util.SaveRecordToFile(dir, m.util.DumpFromRecordInfo(m.recorderSQLDB, m.DumpRecorderInfo()), true)
+		}
+	}()
 }
 
 func (m *MockXORM) DoRecord(scope *xorm.Engine) {

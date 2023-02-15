@@ -320,8 +320,20 @@ func (m *MockGORM) DumpRecorderInfo() map[string][]string {
 //}
 
 func (m *MockGORM) SaveRecordToFile(dir string) {
-	m.util.SaveRecordToFile(dir, m.util.DumpFromRecordInfo(m.recorderSQLDB, m.DumpRecorderInfo()))
+	m.util.SaveRecordToFile(dir, m.util.DumpFromRecordInfo(m.recorderSQLDB, m.DumpRecorderInfo()),false)
 }
+
+
+func (m *MockGORM) SaveRecordToFileAuto(dir string) {
+	go func() {
+		for {
+			time.Sleep(10 * time.Second)
+			m.util.SaveRecordToFile(dir, m.util.DumpFromRecordInfo(m.recorderSQLDB, m.DumpRecorderInfo()), true)
+		}
+	}()
+
+}
+
 
 func (m *MockGORM) DoRecord(db *gorm.DB) {
 	db.Callback().Query().After("gorm:query").Register("gmock:record", func(scope *gorm.Scope) {
