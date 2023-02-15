@@ -42,7 +42,7 @@ type Request struct {
 	Host     string `json:"host"`
 	Method   string `json:"method"`
 	Endpoint string `json:"endpoint"`
-	//Body     string `json:"body"`
+	Body     string `json:"body"`
 	//Params   *map[string]string `json:"params"`
 	//Headers  *map[string]string `json:"headers"`
 }
@@ -174,6 +174,8 @@ func (m *httpHandler) getRequestBody(req *http.Request) string {
 }
 
 func (m *httpHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
+	//m.mockHttpServer.lock.Lock()
+	//defer m.mockHttpServer.lock.Unlock()
 	var body string
 	bodyPrt := &body
 	var respStatus int
@@ -187,9 +189,18 @@ func (m *httpHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 		consoleLog.Println(fmt.Sprintf("\033[32m <Request> Method:'%v'  RequestURI:%v Request Body:%v \u001B[0m", req.Method, req.RequestURI, string(data)))
 		consoleLog.Println(fmt.Sprintf("\u001B[33m <Response> Method:'%v' Status:%v  RequestURI:%v Response Body:%v \u001B[0m", req.Method, *respStatusPtr, req.URL, *bodyPrt))
 	}()
-	//reqBody := m.getRequestBody(req)
-	//key := fmt.Sprintf("#%v_#%v_#%v_#%v", req.Host, strings.ToUpper(req.Method), req.URL.Path)
+
 	key := fmt.Sprintf("#%v_#%v_#%v", req.Host, strings.ToUpper(req.Method), req.URL.Path)
+	reqBody := m.getRequestBody(req)
+	if reqBody != "" {
+		key = fmt.Sprintf("#%v_#%v_#%v_#%v", req.Host, strings.ToUpper(req.Method), req.URL.Path, reqBody)
+		if _, ok := m.mockHttpServer.reqMap[key]; !ok {
+			key = fmt.Sprintf("#%v_#%v_#%v", req.Host, strings.ToUpper(req.Method), req.URL.Path)
+		}
+	}
+
+	//key := fmt.Sprintf("#%v_#%v_#%v_#%v", req.Host, strings.ToUpper(req.Method), req.URL.Path)
+
 	if rsp, ok := m.mockHttpServer.reqMap[key]; ok {
 		if rsp.Headers != nil {
 			for k, v := range *rsp.Headers {
@@ -345,10 +356,14 @@ func (m *MockHttpServer) SetReqRspHandler(reqHander func(req *Request, rsp *Resp
 func (m *MockHttpServer) setReqToResponse(req Request, rsp Response) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
-	if req.Host== "" {
-		req.Host = fmt.Sprintf("%v:%v", "127.0.0.1",m.httpProxyPort)
+	if req.Host == "" {
+		req.Host = fmt.Sprintf("%v:%v", "127.0.0.1", m.httpProxyPort)
 	}
 	key := fmt.Sprintf("#%v_#%v_#%v", req.Host, strings.ToUpper(req.Method), req.Endpoint)
+	if req.Body != "" {
+
+		key=fmt.Sprintf("#%v_#%v_#%v_#%v", req.Host, strings.ToUpper(req.Method), req.Endpoint, req.Body)
+	}
 	//key := fmt.Sprintf("#%v_#%v_#%v", req.Host, strings.ToUpper(req.Method), req.Endpoint)
 	m.reqMap[key] = rsp
 }
