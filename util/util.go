@@ -1,12 +1,15 @@
 package util
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/sjqzhang/goutil"
+	"html/template"
 	"log"
 	"net"
 	"net/url"
 	"os"
+	"path/filepath"
 	"reflect"
 	"regexp"
 	"runtime"
@@ -97,6 +100,61 @@ func Parse(dsn string) (*DSN, error) {
 		&DSNValues{parsed.Query()}, isWrapTcp,
 	}
 	return &d, nil
+}
+
+// use go template to render string with map or list of map
+func Render(tpl string, data interface{}) (string, error) {
+	t, err := template.New("tpl").Parse(tpl)
+	if err != nil {
+		return "", err
+	}
+	buf := new(bytes.Buffer)
+	err = t.Execute(buf, data)
+	if err != nil {
+		return "", err
+	}
+	return buf.String(), nil
+}
+
+
+// parse string use regexp pattern with group and return map
+func ParseWithPattern(pattern, str string) (map[string]string, error) {
+	reg,err := regexp.Compile(pattern)
+	if err != nil {
+		return nil, err
+	}
+	m := reg.FindStringSubmatch(str)
+	if len(m) == 0 {
+		return nil, fmt.Errorf("not match")
+	}
+	result := make(map[string]string)
+	for i, name := range reg.SubexpNames() {
+		if i != 0 && name != "" {
+			result[name] = m[i]
+		}
+	}
+	return result, nil
+}
+
+
+
+
+// get all files by suffix in a directory
+func GetFilesBySuffix(dir, suffix string) ([]string, error) {
+	files := make([]string, 0)
+	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() && strings.HasSuffix(path, suffix) {
+			files = append(files, path)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return files, nil
 }
 
 
