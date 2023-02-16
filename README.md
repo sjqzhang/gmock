@@ -187,3 +187,13 @@ func testMockDocker() {
 }
 
 ```
+
+## 生成覆盖率及测试报告
+
+```bash
+
+go test -timeout 0 -covermode=count -coverprofile=coverage.out  -run="^Test" -coverpkg=package1,package2  
+
+go tool cover -html=coverage.out -o coverage.html
+
+```
