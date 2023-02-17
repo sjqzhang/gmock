@@ -196,6 +196,7 @@ func (m *httpHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 		key = fmt.Sprintf("#%v_#%v_#%v_#%v", req.Host, strings.ToUpper(req.Method), req.URL.Path, reqBody)
 		if _, ok := m.mockHttpServer.reqMap[key]; !ok {
 			key = fmt.Sprintf("#%v_#%v_#%v", req.Host, strings.ToUpper(req.Method), req.URL.Path)
+			consoleLog.Println(fmt.Sprintf("\u001B[31m <Warning:> not match  Key:%v\tBody:%v \u001B[0m", key,reqBody))
 		}
 	}
 
