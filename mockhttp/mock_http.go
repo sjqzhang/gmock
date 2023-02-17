@@ -191,7 +191,7 @@ func (m *httpHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	}()
 
 	key := fmt.Sprintf("#%v_#%v_#%v", req.Host, strings.ToUpper(req.Method), req.URL.Path)
-	reqBody := m.getRequestBody(req)
+	reqBody := strings.TrimSpace( m.getRequestBody(req))
 	if reqBody != "" {
 		key = fmt.Sprintf("#%v_#%v_#%v_#%v", req.Host, strings.ToUpper(req.Method), req.URL.Path, reqBody)
 		if _, ok := m.mockHttpServer.reqMap[key]; !ok {
@@ -362,7 +362,7 @@ func (m *MockHttpServer) setReqToResponse(req Request, rsp Response) {
 	key := fmt.Sprintf("#%v_#%v_#%v", req.Host, strings.ToUpper(req.Method), req.Endpoint)
 	if req.Body != "" {
 
-		key=fmt.Sprintf("#%v_#%v_#%v_#%v", req.Host, strings.ToUpper(req.Method), req.Endpoint, req.Body)
+		key=fmt.Sprintf("#%v_#%v_#%v_#%v", req.Host, strings.ToUpper(req.Method), req.Endpoint, strings.TrimSpace(req.Body))
 	}
 	//key := fmt.Sprintf("#%v_#%v_#%v", req.Host, strings.ToUpper(req.Method), req.Endpoint)
 	m.reqMap[key] = rsp
