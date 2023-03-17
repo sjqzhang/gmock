@@ -39,3 +39,15 @@ services:
     ports:
       - "9092:9092"
       - "2181:2181"
+#  elasticsearch:
+#    privileged: true
+#    image: sjqzhang/elasticsearch
+#    container_name: mock_elasticsearch
+#    network_mode: bridge
+#    environment:
+#      - discovery.type=single-node
+#      - xpack.security.enabled=false
+#      - ELASTIC_PASSWORD=elastic
+#    ports:
+#      - "9200:9200"
+#      - "9300:9300"
