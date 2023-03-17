@@ -203,6 +203,8 @@ func (u *DBUtil) DumpFromRecordInfo(db *sql.DB, recorder map[string][]string) ma
 			continue
 		}
 		var sqls []string
+		//var vals []string
+		var sql string
 		for rows.Next() {
 			var names []string
 			var values []string
@@ -258,13 +260,14 @@ func (u *DBUtil) DumpFromRecordInfo(db *sql.DB, recorder map[string][]string) ma
 
 			}
 
-			sql := fmt.Sprintf("REPLACE INTO `%v`(%v) VALUES(%v);", tableName, strings.Join(names, ","), strings.Join(values, ","))
-			sqls = append(sqls, sql)
+			sql = fmt.Sprintf("REPLACE INTO `%v`(%v) \nVALUES\n", tableName, strings.Join(names, ","))
+			sqls= append(sqls, fmt.Sprintf("\t(%v)",  strings.Join(values, ",")))
+			//sqls = append(sqls, sql)
 
 			//result = append(result, row)
 		}
 		if len(sqls) > 0 {
-			dumpInfo[tableName] = sqls
+			dumpInfo[tableName] = []string{fmt.Sprintf("%v %v;", sql, strings.Join(sqls, ",\n"))}
 		}
 
 	}
