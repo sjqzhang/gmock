@@ -358,6 +358,13 @@ func (m *MockGORMV2) doRecord(scope *gorm.DB) {
 	//scope.HasColumn("id") || scope
 }
 func (m *MockGORMV2) InitSchemas(sqlSchema string) {
+	if util.Util.IsExist(sqlSchema) {
+		data,err:= util.Util.ReadBinFile(sqlSchema)
+		if err != nil {
+			panic(err)
+		}
+		sqlSchema = string(data)
+	}
 	m.schema = sqlSchema
 }
 

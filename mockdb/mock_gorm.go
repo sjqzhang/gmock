@@ -242,6 +242,13 @@ func (m *MockGORM) GetSqlDB() *sql.DB {
 
 // InitSchemas  为了兼容github.com/jinzhu/gorm mysql的bug 特殊处理的
 func (m *MockGORM) InitSchemas(sqlSchema string) {
+	if util.Util.IsExist(sqlSchema) {
+		data,err:= util.Util.ReadBinFile(sqlSchema)
+		if err != nil {
+			panic(err)
+		}
+		sqlSchema = string(data)
+	}
 	m.schema = sqlSchema
 }
 

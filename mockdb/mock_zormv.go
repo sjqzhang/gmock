@@ -128,6 +128,13 @@ func (m *MockZORM) GetDBUtil() *util.DBUtil {
 }
 
 func (m *MockZORM) InitSchemas(sqlSchema string) {
+	if util.Util.IsExist(sqlSchema) {
+		data,err:= util.Util.ReadBinFile(sqlSchema)
+		if err != nil {
+			panic(err)
+		}
+		sqlSchema = string(data)
+	}
 	m.schema = sqlSchema
 }
 
