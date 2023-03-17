@@ -259,7 +259,9 @@ func (u *DBUtil) DumpFromRecordInfo(db *sql.DB, recorder map[string][]string) ma
 				}
 
 			}
-
+			for i,n:=range names{
+				names[i]=fmt.Sprintf("`%v`",n)
+			}
 			sql = fmt.Sprintf("REPLACE INTO `%v`(%v) \nVALUES\n", tableName, strings.Join(names, ","))
 			sqls= append(sqls, fmt.Sprintf("\t(%v)",  strings.Join(values, ",")))
 			//sqls = append(sqls, sql)
