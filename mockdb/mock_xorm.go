@@ -11,7 +11,6 @@ import (
 	"net"
 	"os"
 	"reflect"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -319,19 +318,5 @@ func (m *MockXORM) readMockSQl(filePath string) string {
 
 // parseMockSQL parse sql text to []string
 func (m *MockXORM) parseMockSQL(sqlText string) []string {
-	reg := regexp.MustCompile(`[\r\n]+`)
-	linses := reg.Split(sqlText, -1)
-	var tmp []string
-	var sqls []string
-	for _, line := range linses {
-		tmp = append(tmp, line)
-		if strings.HasSuffix(strings.TrimSpace(line), ";") {
-			if len(tmp) > 0 {
-				sqls = append(sqls, strings.Join(tmp, "\n"))
-			}
-			tmp = []string{}
-		}
-
-	}
-	return sqls
+	return m.util.ParseSQLText(sqlText)
 }

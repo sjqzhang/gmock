@@ -535,7 +535,25 @@ func (m *DBUtil) ParseSQLText(sqlText string) []string {
 	linses := reg.Split(sqlText, -1)
 	var tmp []string
 	var sqls []string
+	mutileComment:=false
 	for _, line := range linses {
+		if strings.HasPrefix(strings.TrimSpace(line), "--") || strings.HasPrefix(strings.TrimSpace(line), "#") {
+			continue
+		}
+		if strings.HasPrefix(strings.TrimSpace(line), "/*") && strings.HasSuffix(strings.TrimSpace(line), "*/") {
+			continue
+		}
+		if strings.HasPrefix(strings.TrimSpace(line), "/*"){
+			mutileComment=true
+			continue
+		}
+		if strings.HasSuffix(strings.TrimSpace(line), "*/") {
+			mutileComment=false
+			continue
+		}
+		if mutileComment {
+			continue
+		}
 		tmp = append(tmp, line)
 		if strings.HasSuffix(strings.TrimSpace(line), ";") {
 			if len(tmp) > 0 {
