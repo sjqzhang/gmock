@@ -315,7 +315,7 @@ func (m *MockGORMV2) doRecord(scope *gorm.DB) {
 		mp := make(map[string]struct{})
 		util.CollectFieldNames(item.Type(), mp, "")
 		for i := 0; i < rValue.Len(); i++ {
-			m.setIdVal(item, tableName, mp)
+			m.setIdVal(rValue.Index(i), tableName, mp)
 			//m.dbRecorder.Create(rValue.Index(i).Interface())
 			//item := rValue.Index(i)
 			//if item.IsValid() && item.Kind() == reflect.Ptr {
