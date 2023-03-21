@@ -281,7 +281,7 @@ func (m *MockGORMV2) doRecord(scope *gorm.DB) {
 	////m.RegisterModels(model)
 	//m.dumper.Sync2(model)
 	//m.dbRecorder.AutoMigrate(model)
-	rValue := reflect.ValueOf(scope.Statement.Model)
+	rValue := reflect.ValueOf(scope.Statement.Dest)
 	if !rValue.IsValid() {
 		return
 	}
