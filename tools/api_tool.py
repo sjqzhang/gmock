@@ -139,6 +139,13 @@ def gen_testcase(req):
     except Exception as e:
         pass
     # upper apis
+    if req['method'] == 'GET':
+        req['method'] = 'GetJson'
+    elif req['method'] == 'POST':
+        req['method'] = 'PostJson'
+    elif req['method'] == 'PUT':
+        req['method'] = 'PutJson'
+
     req['func'] = ''.join([x.title().replace('_','').replace('-','') for x in apis])
     return func_tpl.format(**req)
 
