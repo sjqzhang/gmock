@@ -123,6 +123,8 @@ def gen_testcase(req):
         
     }}
     '''
+    # replace host with 127.0.0.1
+    req['url'] = re.sub(r'http://[^\/]+', 'http://127.0.0.1:8080', req['url'],1)
     api=re.findall(r'http://[^\/]+/([^?]+)', req['url'])
     if len(api) == 0:
         #print(req['url'])
@@ -145,7 +147,9 @@ def gen_testcase(req):
         req['method'] = 'PostJson'
     elif req['method'] == 'PUT':
         req['method'] = 'PutJson'
-
+    # in req_body resp_body replace '`' with ''
+    req['req_body'] = req['req_body'].replace('`','')
+    req['resp_body'] = req['resp_body'].replace('`','')
     req['func'] = ''.join([x.title().replace('_','').replace('-','') for x in apis])
     return func_tpl.format(**req)
 
@@ -175,8 +179,12 @@ def parse_request(txt):
                     if reqbody[0][1] != '':
                         req_map['req_body'] = reqbody[0][1]
                 try:
-                    req_map['req_body'] = json.loads( re.sub(r'^"|"$','', req_map['req_body'],2))
-                except:
+                    req_body=json.loads( req_map['req_body'])
+                    if isinstance(req_body,str):
+                        req_map['req_body'] = json.loads( req_body)
+                    else:
+                        req_map['req_body'] = req_body
+                except Exception as er:
                     pass
                 lines = resp.split("\n")
                 for i, v in enumerate(lines):
@@ -203,10 +211,15 @@ if __name__ == '__main__':
         with open(sys.argv[1]) as f:
             txt = f.read()
             req_list = parse_request(txt)
-            for req in req_list:
-                print(gen_testcase(req))
+            if sys.argv[2]=='all':
+                for req in req_list:
+                    print(gen_testcase(req))
+            else:
+                for req in req_list:
+                    if req['url'].find(sys.argv[2]) != -1 and sys.argv[2]!='all':
+                        print(gen_testcase(req))
 
     else:
         print("install httpdump from https://github.com/hsiafan/httpdump")
         print("httpdump -curl=true -pretty=true -uri='/api/admin/*' -level=all -output=api.log")
-        print("Usage: python3 api_tool.py api.log or python3 api_tool.py api.log api_test.go")
+        print("Usage: python3 api_tool.py api.log or python3 api_tool.py api.log all/uri pattern")
