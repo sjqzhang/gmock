@@ -236,7 +236,8 @@ func (u *DBUtil) DumpFromRecordInfo(db *sql.DB, recorder map[string][]string) ma
 					switch c.DatabaseTypeName() {
 					// Common type names include "VARCHAR", "TEXT", "NVARCHAR", "DECIMAL", "BOOL",
 					// "INT", and "BIGINT".
-					case "VARCHAR", "TEXT", "NVARCHAR","CHART","JSON":
+						// all types of string for mysql
+					case "VARCHAR", "TEXT", "NVARCHAR","CHART","JSON","MULTILINESTRING","TINYTEXT","MEDIUMTEXT","LONGTEXT":
 						v := fmt.Sprintf("%v", convertToStr(vals[i].([]uint8)))
 						v = strings.Replace(v, "'", "\\'", -1)
 						v = strings.Replace(v, "\n", "\\n", -1)
@@ -302,7 +303,7 @@ func (u *DBUtil) Dump(db *sql.DB, tables []string, w io.Writer) {
 				}
 				fieldValues = append(fieldValues, v)
 			}
-			sql := fmt.Sprintf("INSERT INTO `%v` (%v) VALUES (%v);\n", table, strings.Join(fieldNames, ","), strings.Join(fieldValues, ","))
+			sql := fmt.Sprintf("REPLACE INTO `%v` (%v) VALUES (%v);\n", table, strings.Join(fieldNames, ","), strings.Join(fieldValues, ","))
 			sqls = append(sqls, sql)
 		}
 	}
