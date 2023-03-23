@@ -236,7 +236,7 @@ func (u *DBUtil) DumpFromRecordInfo(db *sql.DB, recorder map[string][]string) ma
 					switch c.DatabaseTypeName() {
 					// Common type names include "VARCHAR", "TEXT", "NVARCHAR", "DECIMAL", "BOOL",
 					// "INT", and "BIGINT".
-					case "VARCHAR", "TEXT", "NVARCHAR":
+					case "VARCHAR", "TEXT", "NVARCHAR","CHART","JSON":
 						v := fmt.Sprintf("%v", convertToStr(vals[i].([]uint8)))
 						v = strings.Replace(v, "'", "\\'", -1)
 						v = strings.Replace(v, "\n", "\\n", -1)
