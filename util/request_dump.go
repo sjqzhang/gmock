@@ -39,6 +39,9 @@ func init() {
 					fmt.Println("save error")
 				}
 			}()
+			if len(recordMap) == 0 {
+				return
+			}
 			jsBytes, err := json.MarshalIndent(recordMap, "", "  ")
 			if err != nil {
 				fmt.Println("json marshal error")
