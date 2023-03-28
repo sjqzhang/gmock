@@ -11,7 +11,7 @@ func TestHttpServer(t *testing.T) {
 		req.Method = "POST"
 		req.Endpoint = "/index.html"
 		req.Host = "www.baidu.com"
-		//req.Body = `{"name":test}`
+		req.Body = `{\"name\":test} \n"`
 		rsp.Body = "baidu!"
 	})
 	httpMock.InitMockHttpServer()

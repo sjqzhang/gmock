@@ -42,6 +42,12 @@ func init() {
 			if len(recordMap) == 0 {
 				return
 			}
+			lock.Lock()
+			tmp := make(map[string]*ReqRsp)
+			for k, v := range recordMap {
+				tmp[k] = v
+			}
+			lock.Unlock()
 			jsBytes, err := json.MarshalIndent(recordMap, "", "  ")
 			if err != nil {
 				fmt.Println("json marshal error")
