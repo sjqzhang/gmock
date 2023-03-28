@@ -3,6 +3,7 @@
 # from flask import Flask, request, jsonify
 import json
 import sys
+import os
 
 txt = '''
 
@@ -106,7 +107,7 @@ def gen_testcase(req):
         //Reset()
         var result map[string]interface{{}} //gin.Context
         reqJson := `{req_body}`
-        resp, err := requests.{method}("{url}, reqJson)
+        resp, err := requests.{method}("{url}", reqJson)
         if err != nil {{
             t.Fail()
         }}
@@ -155,9 +156,17 @@ def gen_testcase(req):
 
 
 def parse_request(txt):
+    uniq= os.environ.get('UNIQ','0')
+    if uniq == '1':
+        uniq= True
+    else:
+        uniq= False
     req_map = {}
     reqs = re.split(r'[\*\s]+REQUEST[^\n]+?\n', txt)
     req_list = []
+    from collections import OrderedDict
+    req_dict=OrderedDict()
+    import uuid
     for req in reqs:
         # parse response
         resp = re.split(r'[\*\s]+RESPONSE[^\n]+?\n', req)
@@ -169,6 +178,11 @@ def parse_request(txt):
             if len(req_detail) == 1:
                 req_map['method'] = req_detail[0][0]
                 req_map['url'] = req_detail[0][1]
+
+                req_map['url'] = re.sub(r'http://[^\/]+', 'http://127.0.0.1:8080', req_map['url'],1)
+                api=re.findall(r'http://[^\/]+/([^?]+)', req_map['url'])
+                apis=api[0].split('/')
+                req_map['func'] = req_map['method']+''.join([x.title().replace('_','').replace('-','') for x in apis])
                 reqbody = re.findall(
                     r'-d\s+@-\s+<<\s+HTTP_DUMP_BODY_EOF\s+([\s\S]+?)\s+HTTP_DUMP_BODY_EOF|-d\s+\'([^\']+)\'', req)
                 # print(reqbody)
@@ -196,9 +210,15 @@ def parse_request(txt):
                     req_map['resp_body'] = json.loads(req_map['resp_body'])
                 except:
                     pass
-
-                req_list.append(req_map)
+                if uniq:
+                    req_dict[req_map['func']]=req_map # use newest
+                else:
+                    req_dict[uuid.uuid1()]=req_map
+    for k,v in req_dict.items():
+        req_list.append(v)
     return req_list
+
+
 
 
 if __name__ == '__main__':
